@@ -23,8 +23,8 @@ app "prosanteconnect/pscload" {
         #
         registry {
            use "docker" {
-             image = "prosanteconnect/pscload"
-             tag   = "wp"
+             image = artifact.image
+             tag   = gitrefpretty()
              encoded_auth = filebase64("/secrets/dockerAuth.json")
            }
         }
@@ -33,7 +33,7 @@ app "prosanteconnect/pscload" {
     # Deploy to Nomad
     deploy {
       use "nomad-jobspec" {    
-        jobspec = "${path.app}/pscload.nomad"
+        jobspec = templatefile("${path.app}/pscload.nomad.tpl")
       }
     }
 }
