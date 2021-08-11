@@ -97,6 +97,10 @@ public class Professionnel implements Serializable {
         return nationalId;
     }
 
+    public String getIdType() {
+        return idType;
+    }
+
     public List<ExerciceProfessionnel> getProfessions() {
         return professions;
     }

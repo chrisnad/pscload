@@ -73,7 +73,7 @@ class PscloadApplicationTests {
 
 		File file = new File("src/test/resources/download/Extraction_PSC_20001.txt");
 
-		loader.loadMapFromFile(file);
+		loader.loadMapsFromFile(file);
 
 		Map<String, Professionnel> original = loader.getPsMap();
 
@@ -96,13 +96,13 @@ class PscloadApplicationTests {
 
 		File ogFile = new File("src/test/resources/download/Extraction_PSC_20001.txt");
 
-		loader.loadMapFromFile(ogFile);
+		loader.loadMapsFromFile(ogFile);
 		Map<String, Professionnel> original = loader.getPsMap();
 		System.out.println(System.currentTimeMillis()-startTime);
 
 		File newFile = new File("src/test/resources/download/Extraction_PSC_20002.txt");
 
-		loader.loadMapFromFile(newFile);
+		loader.loadMapsFromFile(newFile);
 		Map<String, Professionnel> revised = loader.getPsMap();
 		System.out.println(System.currentTimeMillis()-startTime);
 
@@ -125,7 +125,7 @@ class PscloadApplicationTests {
 		File extFile = new File("src/test/resources/Extraction_PSC.txt");
 
 		//build simple lists of the lines of the two testfiles
-		loader.loadMapFromFile(extFile);
+		loader.loadMapsFromFile(extFile);
 		Map<String, Professionnel> originalPs = loader.getPsMap();
 		Map<String, Structure> originalStructure = loader.getStructureMap();
 		System.out.println(System.currentTimeMillis()-startTime);

@@ -98,7 +98,7 @@ public class Process {
         latestExtract = latestFiles.get("txt");
         log.info("loading file: {}", latestExtract.getName());
 
-        loader.loadMapFromFile(latestExtract);
+        loader.loadMapsFromFile(latestExtract);
         customMetrics.getAppGauges().get(CustomMetrics.CustomMetric.STAGE).set(2);
     }
 
@@ -119,6 +119,16 @@ public class Process {
     }
 
     /**
+     * Compute diff.
+     */
+    public void computeDiff() {
+        psDiff = pscRestApi.diffPsMaps(serializer.getPsMap(), loader.getPsMap());
+        structureDiff = pscRestApi.diffStructureMaps(serializer.getStructureMap(), loader.getStructureMap());
+
+        customMetrics.getAppGauges().get(CustomMetrics.CustomMetric.STAGE).set(4);
+    }
+
+    /**
      * Serialize maps to file.
      *
      * @throws FileNotFoundException the file not found exception
@@ -130,16 +140,6 @@ public class Process {
                 filesDirectory + "/" + latestExtractDate.concat(".ser"));
 
         Metrics.counter(CustomMetrics.SER_FILE, CustomMetrics.TIMESTAMP, latestExtractDate).increment();
-        customMetrics.getAppGauges().get(CustomMetrics.CustomMetric.STAGE).set(4);
-    }
-
-    /**
-     * Compute diff.
-     */
-    public void computeDiff() {
-        psDiff = pscRestApi.diffPsMaps(serializer.getPsMap(), loader.getPsMap());
-        structureDiff = pscRestApi.diffStructureMaps(serializer.getStructureMap(), loader.getStructureMap());
-
         customMetrics.getAppGauges().get(CustomMetrics.CustomMetric.STAGE).set(5);
     }
 
