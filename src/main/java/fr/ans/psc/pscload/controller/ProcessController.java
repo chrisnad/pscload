@@ -202,7 +202,7 @@ class ProcessController {
      * @return the string
      */
     @PostMapping(value = "/process/diff", produces = MediaType.APPLICATION_JSON_VALUE)
-    public String diff() {
+    public String diff() throws IOException {
         log.info("computing map differential");
         process.computeDiff();
         log.info("computing map differential complete");
@@ -233,6 +233,27 @@ class ProcessController {
         process.uploadChanges();
         log.info("full upload finished");
         return "full upload complete!";
+    }
+
+    // TODO : webhook callback
+    // #1 if (continue)
+
+    @PostMapping(value="/process/continue", produces = MediaType.APPLICATION_JSON_VALUE)
+    public String continueProcess() throws IOException {
+        log.info("resuming process");
+        process.serializeMapsToFile();
+        process.uploadChanges();
+        FilesUtils.cleanup(filesDirectory);
+        log.info("full upload finished after resume");
+        return "full upload after resume !";
+    }
+
+    // #2 if not
+    @PostMapping(value="/process/abort", produces = MediaType.APPLICATION_JSON_VALUE)
+    public String abortProcess() throws IOException {
+        log.info("aborting process");
+        // TBD
+        return "process aborted";
     }
 
 }
