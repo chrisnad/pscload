@@ -10,6 +10,11 @@ runner {
     }
 }
 
+variable "public_hostname" {
+    type    = string
+    default = "forge.psc.henix.asipsante.fr"
+}
+
 # An application to deploy.
 app "pscload" {
     # Build specifies how an application should be deployed. In this case,
