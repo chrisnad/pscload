@@ -84,7 +84,7 @@ EOF
       }
       service {
 	name = "$\u007BNOMAD_JOB_NAME\u007D"
-        tags = ["urlprefix-/pscload/v1/"]
+        tags = ["urlprefix-${public_hostname}/pscload/v1/"]
         port = "http"
         check {
           type = "http"

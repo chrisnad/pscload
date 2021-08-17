@@ -33,7 +33,7 @@ app "prosanteconnect/pscload" {
     # Deploy to Nomad
     deploy {
       use "nomad-jobspec" {    
-        jobspec = templatefile("${path.app}/pscload.nomad.tpl")
+        jobspec = templatefile("${path.app}/pscload.nomad.tpl", public_hostname)
       }
     }
 }
