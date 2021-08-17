@@ -121,7 +121,10 @@ public class Process {
     /**
      * Compute diff.
      */
-    public void computeDiff() {
+    public void computeDiff() throws IOException {
+        if (loader.getPsMap().isEmpty() || loader.getStructureMap().isEmpty()) {
+            loadLatestFile();
+        }
         psDiff = pscRestApi.diffPsMaps(serializer.getPsMap(), loader.getPsMap());
         structureDiff = pscRestApi.diffStructureMaps(serializer.getStructureMap(), loader.getStructureMap());
 
@@ -147,9 +150,12 @@ public class Process {
      * Load changes.
      *
      */
-    public void uploadChanges() {
+    public void uploadChanges() throws IOException {
         customMetrics.getAppGauges().get(CustomMetrics.CustomMetric.STAGE).set(6);
 
+        if (psDiff == null || structureDiff == null) {
+           computeDiff();
+        }
         pscRestApi.uploadChanges(psDiff, structureDiff);
 
         customMetrics.getAppGauges().get(CustomMetrics.CustomMetric.STAGE).set(0);

@@ -1,8 +1,12 @@
 package fr.ans.psc.pscload.component;
 
 import fr.ans.psc.pscload.component.utils.FilesUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.context.ApplicationListener;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
@@ -13,7 +17,12 @@ import java.security.GeneralSecurityException;
  * The type Scheduler.
  */
 @Component
-public class Scheduler {
+public class Scheduler implements ApplicationListener<ApplicationReadyEvent> {
+
+    /**
+     * The logger.
+     */
+    private static final Logger log = LoggerFactory.getLogger(Process.class);
 
     @Autowired
     private Process process;
@@ -30,7 +39,6 @@ public class Scheduler {
     /**
      * Download and parse.
      */
-    @Scheduled(fixedDelayString = "${schedule.rate.ms}")
     public void run() throws GeneralSecurityException, IOException {
         if (enabled) {
             process.downloadAndUnzip(extractDownloadUrl);
@@ -40,6 +48,20 @@ public class Scheduler {
             process.serializeMapsToFile();
             process.uploadChanges();
             FilesUtils.cleanup(filesDirectory);
+        }
+    }
+
+    @Scheduled(cron = "${schedule.cron.expression}", zone = "${schedule.cron.timeZone}")
+    public void scheduleProcess() throws GeneralSecurityException, IOException {
+        run();
+    }
+
+    @Override
+    public void onApplicationEvent(ApplicationReadyEvent event)  {
+        try {
+            run();
+        } catch (Exception e) {
+            log.info("scheduled task failed on application ready");
         }
     }
 }
