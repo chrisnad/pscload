@@ -7,7 +7,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.io.File;
@@ -164,10 +166,13 @@ class ProcessController {
      * @throws IOException the io exception
      */
     @PostMapping(value = "/process/load/new", produces = MediaType.APPLICATION_JSON_VALUE)
-    public String loadNew() throws IOException {
-        process.loadLatestFile();
+    public ResponseEntity<String> loadNew() throws IOException {
+        boolean isProcessOK = process.loadLatestFile();
+        if (!isProcessOK) {
+            return new ResponseEntity<>("No extract file has been found. You should download one first.", HttpStatus.FORBIDDEN);
+        }
         log.info("new Ps and Structure maps loaded");
-        return "new maps loading complete";
+        return new ResponseEntity<>("new maps loading complete", HttpStatus.OK);
     }
 
     /**
@@ -215,12 +220,15 @@ class ProcessController {
      * @return the string
      */
     @PostMapping(value = "/process/upload/diff", produces = MediaType.APPLICATION_JSON_VALUE)
-    public String uploadDiff() throws IOException {
+    public ResponseEntity<String> uploadDiff() throws IOException {
         log.info("uploading changes");
-        process.uploadChanges();
+        boolean isProcessOK = process.uploadChanges();
+        if (!isProcessOK) {
+            return new ResponseEntity<>("No changes have been uploaded. You should compute diffs first.", HttpStatus.FORBIDDEN);
+        }
         FilesUtils.cleanup(filesDirectory);
         log.info("uploading changes finished");
-        return "uploading changes complete!";
+        return new ResponseEntity<>("uploading changes complete!", HttpStatus.OK);
     }
 
     @PostMapping(value = "/process/run", produces = MediaType.APPLICATION_JSON_VALUE)

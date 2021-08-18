@@ -92,14 +92,18 @@ public class Process {
      *
      * @throws IOException the io exception
      */
-    public void loadLatestFile() throws IOException {
+    public boolean loadLatestFile() throws IOException {
         Map<String, File> latestFiles = FilesUtils.getLatestExtAndSer(filesDirectory);
 
         latestExtract = latestFiles.get("txt");
+        if (latestExtract == null) {
+            return false;
+        }
         log.info("loading file: {}", latestExtract.getName());
 
         loader.loadMapsFromFile(latestExtract);
         customMetrics.getAppGauges().get(CustomMetrics.CustomMetric.STAGE).set(2);
+        return true;
     }
 
     /**
@@ -121,10 +125,7 @@ public class Process {
     /**
      * Compute diff.
      */
-    public void computeDiff() throws IOException {
-        if (loader.getPsMap().isEmpty() || loader.getStructureMap().isEmpty()) {
-            loadLatestFile();
-        }
+    public void computeDiff() {
         psDiff = pscRestApi.diffPsMaps(serializer.getPsMap(), loader.getPsMap());
         structureDiff = pscRestApi.diffStructureMaps(serializer.getStructureMap(), loader.getStructureMap());
 
@@ -150,15 +151,16 @@ public class Process {
      * Load changes.
      *
      */
-    public void uploadChanges() throws IOException {
+    public boolean uploadChanges() throws IOException {
         customMetrics.getAppGauges().get(CustomMetrics.CustomMetric.STAGE).set(6);
 
         if (psDiff == null || structureDiff == null) {
-           computeDiff();
+           return false;
         }
         pscRestApi.uploadChanges(psDiff, structureDiff);
 
         customMetrics.getAppGauges().get(CustomMetrics.CustomMetric.STAGE).set(0);
+        return true;
     }
 
 }

@@ -41,13 +41,11 @@ public class Scheduler implements ApplicationListener<ApplicationReadyEvent> {
      */
     public void run() throws GeneralSecurityException, IOException {
         if (enabled) {
+            System.out.println("--------------------------SCHEDULER TIIIIIME --------------------------");
             process.downloadAndUnzip(extractDownloadUrl);
             process.loadLatestFile();
             process.deserializeFileToMaps();
             process.computeDiff();
-            process.serializeMapsToFile();
-            process.uploadChanges();
-            FilesUtils.cleanup(filesDirectory);
         }
     }
 
