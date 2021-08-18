@@ -16,7 +16,7 @@ variable "public_hostname" {
 }
 
 # An application to deploy.
-app "pscload" {
+app "prosanteconnect/pscload" {
     # Build specifies how an application should be deployed. In this case,
     # we'll build using a Dockerfile and keeping it in a local registry.
     build {
