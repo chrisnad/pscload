@@ -7,6 +7,7 @@ runner {
     enabled = true
     data_source "git" {
         url = "https://github.com/prosanteconnect/pscload.git"
+        ref = "production"
     }
 }
 
