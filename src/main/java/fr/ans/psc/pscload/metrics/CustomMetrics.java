@@ -2,6 +2,7 @@ package fr.ans.psc.pscload.metrics;
 
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Tags;
 import org.springframework.stereotype.Component;
 
 import java.util.EnumMap;
@@ -67,41 +68,41 @@ public class CustomMetrics {
     public CustomMetrics(MeterRegistry meterRegistry) {
         appGauges.put(CustomMetric.STAGE, meterRegistry.gauge("pscload.stage", new AtomicInteger(0)));
 
-        appGauges.put(CustomMetric.PS_UPLOAD_SIZE, meterRegistry.gauge("ps.upload.size", new AtomicInteger(0)));
-        appGauges.put(CustomMetric.PS_0_UPLOAD_SIZE, meterRegistry.gauge("ps.0.upload.size", new AtomicInteger(0)));
-        appGauges.put(CustomMetric.PS_3_UPLOAD_SIZE, meterRegistry.gauge("ps.3.upload.size", new AtomicInteger(0)));
-        appGauges.put(CustomMetric.PS_5_UPLOAD_SIZE, meterRegistry.gauge("ps.5.upload.size", new AtomicInteger(0)));
-        appGauges.put(CustomMetric.PS_8_UPLOAD_SIZE, meterRegistry.gauge("ps.8.upload.size", new AtomicInteger(0)));
-        appGauges.put(CustomMetric.PS_UPLOAD_PROGRESSION, meterRegistry.gauge("ps.upload.progression", new AtomicInteger(0)));
+        appGauges.put(CustomMetric.PS_UPLOAD_SIZE, meterRegistry.gauge("ps.metric", Tags.of("group", "total", "operation", "upload"), new AtomicInteger(0)));
+        appGauges.put(CustomMetric.PS_0_UPLOAD_SIZE, meterRegistry.gauge("ps.metric", Tags.of("group", "0", "operation", "upload"), new AtomicInteger(0)));
+        appGauges.put(CustomMetric.PS_3_UPLOAD_SIZE, meterRegistry.gauge("ps.metric", Tags.of("group", "3", "operation", "upload"), new AtomicInteger(0)));
+        appGauges.put(CustomMetric.PS_5_UPLOAD_SIZE, meterRegistry.gauge("ps.metric", Tags.of("group", "5", "operation", "upload"), new AtomicInteger(0)));
+        appGauges.put(CustomMetric.PS_8_UPLOAD_SIZE, meterRegistry.gauge("ps.metric", Tags.of("group", "8", "operation", "upload"), new AtomicInteger(0)));
+        appGauges.put(CustomMetric.PS_UPLOAD_PROGRESSION, meterRegistry.gauge("ps.metric", Tags.of("progression", "true", "operation", "upload"), new AtomicInteger(0)));
 
-        appGauges.put(CustomMetric.STRUCTURE_UPLOAD_SIZE, meterRegistry.gauge("structure.upload.size", new AtomicInteger(0)));
-        appGauges.put(CustomMetric.STRUCTURE_UPLOAD_PROGRESSION,meterRegistry.gauge("structure.upload.progression", new AtomicInteger(0)));
+        appGauges.put(CustomMetric.STRUCTURE_UPLOAD_SIZE, meterRegistry.gauge("structure.metric", Tags.of("operation", "upload"), new AtomicInteger(0)));
+        appGauges.put(CustomMetric.STRUCTURE_UPLOAD_PROGRESSION,meterRegistry.gauge("structure.metric", Tags.of("operation", "upload"), new AtomicInteger(0)));
 
-        appGauges.put(CustomMetric.PS_DELETE_SIZE ,meterRegistry.gauge("ps.delete.size", new AtomicInteger(0)));
-        appGauges.put(CustomMetric.PS_0_DELETE_SIZE ,meterRegistry.gauge("ps.0.delete.size", new AtomicInteger(0)));
-        appGauges.put(CustomMetric.PS_3_DELETE_SIZE ,meterRegistry.gauge("ps.3.delete.size", new AtomicInteger(0)));
-        appGauges.put(CustomMetric.PS_5_DELETE_SIZE ,meterRegistry.gauge("ps.5.delete.size", new AtomicInteger(0)));
-        appGauges.put(CustomMetric.PS_8_DELETE_SIZE ,meterRegistry.gauge("ps.8.delete.size", new AtomicInteger(0)));
-        appGauges.put(CustomMetric.PS_DELETE_PROGRESSION ,meterRegistry.gauge("ps.delete.progression", new AtomicInteger(0)));
-        appGauges.put(CustomMetric.PS_CREATE_SIZE ,meterRegistry.gauge("ps.create.size", new AtomicInteger(0)));
-        appGauges.put(CustomMetric.PS_0_CREATE_SIZE ,meterRegistry.gauge("ps.0.create.size", new AtomicInteger(0)));
-        appGauges.put(CustomMetric.PS_3_CREATE_SIZE ,meterRegistry.gauge("ps.3.create.size", new AtomicInteger(0)));
-        appGauges.put(CustomMetric.PS_5_CREATE_SIZE ,meterRegistry.gauge("ps.5.create.size", new AtomicInteger(0)));
-        appGauges.put(CustomMetric.PS_8_CREATE_SIZE ,meterRegistry.gauge("ps.8.create.size", new AtomicInteger(0)));
-        appGauges.put(CustomMetric.PS_CREATE_PROGRESSION ,meterRegistry.gauge("ps.create.progression", new AtomicInteger(0)));
-        appGauges.put(CustomMetric.PS_UPDATE_SIZE,meterRegistry.gauge("ps.update.size", new AtomicInteger(0)));
-        appGauges.put(CustomMetric.PS_0_UPDATE_SIZE,meterRegistry.gauge("ps.0.update.size", new AtomicInteger(0)));
-        appGauges.put(CustomMetric.PS_3_UPDATE_SIZE,meterRegistry.gauge("ps.3.update.size", new AtomicInteger(0)));
-        appGauges.put(CustomMetric.PS_5_UPDATE_SIZE,meterRegistry.gauge("ps.5.update.size", new AtomicInteger(0)));
-        appGauges.put(CustomMetric.PS_8_UPDATE_SIZE,meterRegistry.gauge("ps.8.update.size", new AtomicInteger(0)));
-        appGauges.put(CustomMetric.PS_UPDATE_PROGRESSION,meterRegistry.gauge("ps.update.progression", new AtomicInteger(0)));
+        appGauges.put(CustomMetric.PS_DELETE_SIZE ,meterRegistry.gauge("ps.metric", Tags.of("group", "total", "operation", "delete"), new AtomicInteger(0)));
+        appGauges.put(CustomMetric.PS_0_DELETE_SIZE ,meterRegistry.gauge("ps.metric", Tags.of("group", "0", "operation", "delete"), new AtomicInteger(0)));
+        appGauges.put(CustomMetric.PS_3_DELETE_SIZE ,meterRegistry.gauge("ps.metric", Tags.of("group", "3", "operation", "delete"), new AtomicInteger(0)));
+        appGauges.put(CustomMetric.PS_5_DELETE_SIZE ,meterRegistry.gauge("ps.metric", Tags.of("group", "5", "operation", "delete"), new AtomicInteger(0)));
+        appGauges.put(CustomMetric.PS_8_DELETE_SIZE ,meterRegistry.gauge("ps.metric", Tags.of("group", "8", "operation", "delete"), new AtomicInteger(0)));
+        appGauges.put(CustomMetric.PS_DELETE_PROGRESSION ,meterRegistry.gauge("ps.metric", Tags.of("progression", "true", "operation", "delete"), new AtomicInteger(0)));
+        appGauges.put(CustomMetric.PS_CREATE_SIZE ,meterRegistry.gauge("ps.metric", Tags.of("group", "total", "operation", "create"), new AtomicInteger(0)));
+        appGauges.put(CustomMetric.PS_0_CREATE_SIZE ,meterRegistry.gauge("ps.metric", Tags.of("group", "0", "operation", "create"), new AtomicInteger(0)));
+        appGauges.put(CustomMetric.PS_3_CREATE_SIZE ,meterRegistry.gauge("ps.metric", Tags.of("group", "3", "operation", "create"), new AtomicInteger(0)));
+        appGauges.put(CustomMetric.PS_5_CREATE_SIZE ,meterRegistry.gauge("ps.metric", Tags.of("group", "5", "operation", "create"), new AtomicInteger(0)));
+        appGauges.put(CustomMetric.PS_8_CREATE_SIZE ,meterRegistry.gauge("ps.metric", Tags.of("group", "8", "operation", "create"), new AtomicInteger(0)));
+        appGauges.put(CustomMetric.PS_CREATE_PROGRESSION ,meterRegistry.gauge("ps.metric", Tags.of("progression", "true", "operation", "create"), new AtomicInteger(0)));
+        appGauges.put(CustomMetric.PS_UPDATE_SIZE,meterRegistry.gauge("ps.metric", Tags.of("group", "total", "operation", "update"), new AtomicInteger(0)));
+        appGauges.put(CustomMetric.PS_0_UPDATE_SIZE,meterRegistry.gauge("ps.metric", Tags.of("group", "0", "operation", "update"), new AtomicInteger(0)));
+        appGauges.put(CustomMetric.PS_3_UPDATE_SIZE,meterRegistry.gauge("ps.metric", Tags.of("group", "3", "operation", "update"), new AtomicInteger(0)));
+        appGauges.put(CustomMetric.PS_5_UPDATE_SIZE,meterRegistry.gauge("ps.metric", Tags.of("group", "5", "operation", "update"), new AtomicInteger(0)));
+        appGauges.put(CustomMetric.PS_8_UPDATE_SIZE,meterRegistry.gauge("ps.metric", Tags.of("group", "8", "operation", "update"), new AtomicInteger(0)));
+        appGauges.put(CustomMetric.PS_UPDATE_PROGRESSION,meterRegistry.gauge("ps.metric", Tags.of("progression", "true", "operation", "update"), new AtomicInteger(0)));
 
-        appGauges.put(CustomMetric.STRUCTURE_DELETE_SIZE ,meterRegistry.gauge("structure.delete.size", new AtomicInteger(0)));
-        appGauges.put(CustomMetric.STRUCTURE_DELETE_PROGRESSION ,meterRegistry.gauge("structure.delete.progression", new AtomicInteger(0)));
-        appGauges.put(CustomMetric.STRUCTURE_CREATE_SIZE ,meterRegistry.gauge("structure.create.size", new AtomicInteger(0)));
-        appGauges.put(CustomMetric.STRUCTURE_CREATE_PROGRESSION ,meterRegistry.gauge("structure.create.progression", new AtomicInteger(0)));
-        appGauges.put(CustomMetric.STRUCTURE_UPDATE_SIZE,meterRegistry.gauge("structure.update.size", new AtomicInteger(0)));
-        appGauges.put(CustomMetric.STRUCTURE_UPDATE_PROGRESSION,meterRegistry.gauge("structure.update.progression", new AtomicInteger(0)));
+        appGauges.put(CustomMetric.STRUCTURE_DELETE_SIZE ,meterRegistry.gauge("structure.metric", Tags.of("operation", "delete"), new AtomicInteger(0)));
+        appGauges.put(CustomMetric.STRUCTURE_DELETE_PROGRESSION ,meterRegistry.gauge("structure.metric", Tags.of("progression", "true", "operation", "delete"), new AtomicInteger(0)));
+        appGauges.put(CustomMetric.STRUCTURE_CREATE_SIZE ,meterRegistry.gauge("structure.metric", Tags.of("operation", "create"), new AtomicInteger(0)));
+        appGauges.put(CustomMetric.STRUCTURE_CREATE_PROGRESSION ,meterRegistry.gauge("structure.metric", Tags.of("progression", "true", "operation", "create"),new AtomicInteger(0)));
+        appGauges.put(CustomMetric.STRUCTURE_UPDATE_SIZE,meterRegistry.gauge("structure.metric", Tags.of("operation", "update"), new AtomicInteger(0)));
+        appGauges.put(CustomMetric.STRUCTURE_UPDATE_PROGRESSION,meterRegistry.gauge("structure.metric", Tags.of("progression", "true", "operation", "update"), new AtomicInteger(0)));
 
         Counter.builder(SER_FILE)
                 .tags(TIMESTAMP, "")
