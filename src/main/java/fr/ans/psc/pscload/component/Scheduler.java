@@ -41,7 +41,7 @@ public class Scheduler implements ApplicationListener<ApplicationReadyEvent> {
      */
     public void run() throws GeneralSecurityException, IOException {
         if (enabled) {
-            System.out.println("--------------------------SCHEDULER TIIIIIME --------------------------");
+            log.info("start batch");
             process.downloadAndUnzip(extractDownloadUrl);
             process.loadLatestFile();
             process.deserializeFileToMaps();

@@ -83,7 +83,7 @@ public class Process {
         // unzipping only if txt file is newer than what we already have
         if (zipFile != null && FilesUtils.unzip(zipFile, true)) {
             // stage 1: download and unzip successful
-            customMetrics.getAppGauges().get(CustomMetrics.CustomMetric.STAGE).set(1);
+            customMetrics.getAppMiscGauges().get(CustomMetrics.MiscCustomMetric.STAGE).set(1);
         }
     }
 
@@ -102,7 +102,7 @@ public class Process {
         log.info("loading file: {}", latestExtract.getName());
 
         loader.loadMapsFromFile(latestExtract);
-        customMetrics.getAppGauges().get(CustomMetrics.CustomMetric.STAGE).set(2);
+        customMetrics.getAppMiscGauges().get(CustomMetrics.MiscCustomMetric.STAGE).set(2);
         return true;
     }
 
@@ -119,7 +119,7 @@ public class Process {
         if(ogFile != null) {
             serializer.deserialiseFileToMaps(ogFile);
         }
-        customMetrics.getAppGauges().get(CustomMetrics.CustomMetric.STAGE).set(3);
+        customMetrics.getAppMiscGauges().get(CustomMetrics.MiscCustomMetric.STAGE).set(3);
     }
 
     /**
@@ -129,7 +129,7 @@ public class Process {
         psDiff = pscRestApi.diffPsMaps(serializer.getPsMap(), loader.getPsMap());
         structureDiff = pscRestApi.diffStructureMaps(serializer.getStructureMap(), loader.getStructureMap());
 
-        customMetrics.getAppGauges().get(CustomMetrics.CustomMetric.STAGE).set(4);
+        customMetrics.getAppMiscGauges().get(CustomMetrics.MiscCustomMetric.STAGE).set(4);
     }
 
     /**
@@ -143,8 +143,8 @@ public class Process {
         serializer.serialiseMapsToFile(loader.getPsMap(), loader.getStructureMap(),
                 filesDirectory + "/" + latestExtractDate.concat(".ser"));
 
-        Metrics.counter(CustomMetrics.SER_FILE, CustomMetrics.TIMESTAMP, latestExtractDate).increment();
-        customMetrics.getAppGauges().get(CustomMetrics.CustomMetric.STAGE).set(5);
+        Metrics.counter(CustomMetrics.SER_FILE_TAG, CustomMetrics.TIMESTAMP_TAG, latestExtractDate).increment();
+        customMetrics.getAppMiscGauges().get(CustomMetrics.MiscCustomMetric.STAGE).set(5);
     }
 
     /**
@@ -152,14 +152,14 @@ public class Process {
      *
      */
     public boolean uploadChanges() throws IOException {
-        customMetrics.getAppGauges().get(CustomMetrics.CustomMetric.STAGE).set(6);
+        customMetrics.getAppMiscGauges().get(CustomMetrics.MiscCustomMetric.STAGE).set(6);
 
         if (psDiff == null || structureDiff == null) {
            return false;
         }
         pscRestApi.uploadChanges(psDiff, structureDiff);
 
-        customMetrics.getAppGauges().get(CustomMetrics.CustomMetric.STAGE).set(0);
+        customMetrics.getAppMiscGauges().get(CustomMetrics.MiscCustomMetric.STAGE).set(0);
         return true;
     }
 

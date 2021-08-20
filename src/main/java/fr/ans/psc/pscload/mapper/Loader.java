@@ -40,10 +40,10 @@ public class Loader {
         log.info("loading {} into list of Ps", file.getName());
         psMap.clear();
         structureMap.clear();
-        customMetrics.getAppGauges().get(CustomMetrics.CustomMetric.PS_0_UPLOAD_SIZE).set(0);
-        customMetrics.getAppGauges().get(CustomMetrics.CustomMetric.PS_3_UPLOAD_SIZE).set(0);
-        customMetrics.getAppGauges().get(CustomMetrics.CustomMetric.PS_5_UPLOAD_SIZE).set(0);
-        customMetrics.getAppGauges().get(CustomMetrics.CustomMetric.PS_8_UPLOAD_SIZE).set(0);
+        customMetrics.getPsSizeGauges().get(CustomMetrics.PsCustomMetric.PS_ADELI_UPLOAD_SIZE).set(0);
+        customMetrics.getPsSizeGauges().get(CustomMetrics.PsCustomMetric.PS_FINESS_UPLOAD_SIZE).set(0);
+        customMetrics.getPsSizeGauges().get(CustomMetrics.PsCustomMetric.PS_SIRET_UPLOAD_SIZE).set(0);
+        customMetrics.getPsSizeGauges().get(CustomMetrics.PsCustomMetric.PS_RPPS_UPLOAD_SIZE).set(0);
         // ObjectRowProcessor converts the parsed values and gives you the resulting row.
         ObjectRowProcessor rowProcessor = new ObjectRowProcessor() {
             @Override
@@ -61,16 +61,16 @@ public class Loader {
                     // Ps metrics by idType
                     switch (items[0]) {
                         case "0" :
-                            customMetrics.getAppGauges().get(CustomMetrics.CustomMetric.PS_0_UPLOAD_SIZE).incrementAndGet();
+                            customMetrics.getPsSizeGauges().get(CustomMetrics.PsCustomMetric.PS_ADELI_UPLOAD_SIZE).incrementAndGet();
                             break;
                         case "3" :
-                            customMetrics.getAppGauges().get(CustomMetrics.CustomMetric.PS_3_UPLOAD_SIZE).incrementAndGet();
+                            customMetrics.getPsSizeGauges().get(CustomMetrics.PsCustomMetric.PS_FINESS_UPLOAD_SIZE).incrementAndGet();
                             break;
                         case "5" :
-                            customMetrics.getAppGauges().get(CustomMetrics.CustomMetric.PS_5_UPLOAD_SIZE).incrementAndGet();
+                            customMetrics.getPsSizeGauges().get(CustomMetrics.PsCustomMetric.PS_SIRET_UPLOAD_SIZE).incrementAndGet();
                             break;
                         case "8" :
-                            customMetrics.getAppGauges().get(CustomMetrics.CustomMetric.PS_8_UPLOAD_SIZE).incrementAndGet();
+                            customMetrics.getPsSizeGauges().get(CustomMetrics.PsCustomMetric.PS_RPPS_UPLOAD_SIZE).incrementAndGet();
                     }
                 }
                 // get structure in map by its reference from row
@@ -92,9 +92,9 @@ public class Loader {
         parser.parse(new BufferedReader(new FileReader(file)));
         log.info("loading complete!");
 
-        customMetrics.getAppGauges().get(CustomMetrics.CustomMetric.PS_UPLOAD_SIZE).set(psMap.size());
-        customMetrics.getAppGauges().get(CustomMetrics.CustomMetric.STRUCTURE_UPLOAD_SIZE).set(structureMap.size());
-        customMetrics.getAppGauges().get(CustomMetrics.CustomMetric.STAGE).set(1);  // stage 1: loaded file into map
+        customMetrics.getPsSizeGauges().get(CustomMetrics.PsCustomMetric.PS_ANY_UPLOAD_SIZE).set(psMap.size());
+        customMetrics.getAppStructureSizeGauges().get(CustomMetrics.StructureCustomMetric.STRUCTURE_UPLOAD_SIZE).set(structureMap.size());
+        customMetrics.getAppMiscGauges().get(CustomMetrics.MiscCustomMetric.STAGE).set(1);  // stage 1: loaded file into map
     }
 
     public Map<String, Professionnel> getPsMap() {

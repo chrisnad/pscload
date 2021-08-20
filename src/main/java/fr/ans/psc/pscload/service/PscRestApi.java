@@ -41,37 +41,37 @@ public class PscRestApi {
     public MapDifference<String, Professionnel> diffPsMaps(Map<String, Professionnel> original, Map<String, Professionnel> revised) {
         MapDifference<String, Professionnel> psDiff = Maps.difference(original, revised);
 
-        customMetrics.getAppGauges().get(CustomMetrics.CustomMetric.PS_DELETE_SIZE).set(psDiff.entriesOnlyOnLeft().size());
-        customMetrics.getAppGauges().get(CustomMetrics.CustomMetric.PS_CREATE_SIZE).set(psDiff.entriesOnlyOnRight().size());
-        customMetrics.getAppGauges().get(CustomMetrics.CustomMetric.PS_UPDATE_SIZE).set(psDiff.entriesDiffering().size());
+        customMetrics.getPsSizeGauges().get(CustomMetrics.PsCustomMetric.PS_ANY_DELETE_SIZE).set(psDiff.entriesOnlyOnLeft().size());
+        customMetrics.getPsSizeGauges().get(CustomMetrics.PsCustomMetric.PS_ANY_CREATE_SIZE).set(psDiff.entriesOnlyOnRight().size());
+        customMetrics.getPsSizeGauges().get(CustomMetrics.PsCustomMetric.PS_ANY_UPDATE_SIZE).set(psDiff.entriesDiffering().size());
 
-        customMetrics.getAppGauges().get(CustomMetrics.CustomMetric.PS_0_DELETE_SIZE).set(
-                Math.toIntExact(psDiff.entriesOnlyOnLeft().values().stream().filter(ps -> "0".equals(ps.getIdType())).count()));
-        customMetrics.getAppGauges().get(CustomMetrics.CustomMetric.PS_0_CREATE_SIZE).set(
-                Math.toIntExact(psDiff.entriesOnlyOnRight().values().stream().filter(ps -> "0".equals(ps.getIdType())).count()));
-        customMetrics.getAppGauges().get(CustomMetrics.CustomMetric.PS_0_UPDATE_SIZE).set(
-                Math.toIntExact(psDiff.entriesDiffering().values().stream().filter(ps -> "0".equals(ps.leftValue().getIdType())).count()));
+        customMetrics.getPsSizeGauges().get(CustomMetrics.PsCustomMetric.PS_ADELI_DELETE_SIZE).set(
+                Math.toIntExact(psDiff.entriesOnlyOnLeft().values().stream().filter(ps -> CustomMetrics.ID_TYPE.ADELI.value.equals(ps.getIdType())).count()));
+        customMetrics.getPsSizeGauges().get(CustomMetrics.PsCustomMetric.PS_ADELI_CREATE_SIZE).set(
+                Math.toIntExact(psDiff.entriesOnlyOnRight().values().stream().filter(ps -> CustomMetrics.ID_TYPE.ADELI.value.equals(ps.getIdType())).count()));
+        customMetrics.getPsSizeGauges().get(CustomMetrics.PsCustomMetric.PS_ADELI_UPDATE_SIZE).set(
+                Math.toIntExact(psDiff.entriesDiffering().values().stream().filter(ps -> CustomMetrics.ID_TYPE.ADELI.value.equals(ps.leftValue().getIdType())).count()));
 
-        customMetrics.getAppGauges().get(CustomMetrics.CustomMetric.PS_3_DELETE_SIZE).set(
-                Math.toIntExact(psDiff.entriesOnlyOnLeft().values().stream().filter(ps -> "3".equals(ps.getIdType())).count()));
-        customMetrics.getAppGauges().get(CustomMetrics.CustomMetric.PS_3_CREATE_SIZE).set(
-                Math.toIntExact(psDiff.entriesOnlyOnRight().values().stream().filter(ps -> "3".equals(ps.getIdType())).count()));
-        customMetrics.getAppGauges().get(CustomMetrics.CustomMetric.PS_3_UPDATE_SIZE).set(
-                Math.toIntExact(psDiff.entriesDiffering().values().stream().filter(ps -> "3".equals(ps.leftValue().getIdType())).count()));
+        customMetrics.getPsSizeGauges().get(CustomMetrics.PsCustomMetric.PS_FINESS_DELETE_SIZE).set(
+                Math.toIntExact(psDiff.entriesOnlyOnLeft().values().stream().filter(ps -> CustomMetrics.ID_TYPE.FINESS.value.equals(ps.getIdType())).count()));
+        customMetrics.getPsSizeGauges().get(CustomMetrics.PsCustomMetric.PS_FINESS_CREATE_SIZE).set(
+                Math.toIntExact(psDiff.entriesOnlyOnRight().values().stream().filter(ps -> CustomMetrics.ID_TYPE.FINESS.value.equals(ps.getIdType())).count()));
+        customMetrics.getPsSizeGauges().get(CustomMetrics.PsCustomMetric.PS_FINESS_UPDATE_SIZE).set(
+                Math.toIntExact(psDiff.entriesDiffering().values().stream().filter(ps -> CustomMetrics.ID_TYPE.FINESS.value.equals(ps.leftValue().getIdType())).count()));
 
-        customMetrics.getAppGauges().get(CustomMetrics.CustomMetric.PS_5_DELETE_SIZE).set(
-                Math.toIntExact(psDiff.entriesOnlyOnLeft().values().stream().filter(ps -> "5".equals(ps.getIdType())).count()));
-        customMetrics.getAppGauges().get(CustomMetrics.CustomMetric.PS_5_CREATE_SIZE).set(
-                Math.toIntExact(psDiff.entriesOnlyOnRight().values().stream().filter(ps -> "5".equals(ps.getIdType())).count()));
-        customMetrics.getAppGauges().get(CustomMetrics.CustomMetric.PS_5_UPDATE_SIZE).set(
-                Math.toIntExact(psDiff.entriesDiffering().values().stream().filter(ps -> "5".equals(ps.leftValue().getIdType())).count()));
+        customMetrics.getPsSizeGauges().get(CustomMetrics.PsCustomMetric.PS_SIRET_DELETE_SIZE).set(
+                Math.toIntExact(psDiff.entriesOnlyOnLeft().values().stream().filter(ps -> CustomMetrics.ID_TYPE.SIRET.value.equals(ps.getIdType())).count()));
+        customMetrics.getPsSizeGauges().get(CustomMetrics.PsCustomMetric.PS_SIRET_CREATE_SIZE).set(
+                Math.toIntExact(psDiff.entriesOnlyOnRight().values().stream().filter(ps -> CustomMetrics.ID_TYPE.SIRET.value.equals(ps.getIdType())).count()));
+        customMetrics.getPsSizeGauges().get(CustomMetrics.PsCustomMetric.PS_SIRET_UPDATE_SIZE).set(
+                Math.toIntExact(psDiff.entriesDiffering().values().stream().filter(ps -> CustomMetrics.ID_TYPE.SIRET.value.equals(ps.leftValue().getIdType())).count()));
 
-        customMetrics.getAppGauges().get(CustomMetrics.CustomMetric.PS_8_DELETE_SIZE).set(
-                Math.toIntExact(psDiff.entriesOnlyOnLeft().values().stream().filter(ps -> "8".equals(ps.getIdType())).count()));
-        customMetrics.getAppGauges().get(CustomMetrics.CustomMetric.PS_8_CREATE_SIZE).set(
-                Math.toIntExact(psDiff.entriesOnlyOnRight().values().stream().filter(ps -> "8".equals(ps.getIdType())).count()));
-        customMetrics.getAppGauges().get(CustomMetrics.CustomMetric.PS_8_UPDATE_SIZE).set(
-                Math.toIntExact(psDiff.entriesDiffering().values().stream().filter(ps -> "8".equals(ps.leftValue().getIdType())).count()));
+        customMetrics.getPsSizeGauges().get(CustomMetrics.PsCustomMetric.PS_RPPS_DELETE_SIZE).set(
+                Math.toIntExact(psDiff.entriesOnlyOnLeft().values().stream().filter(ps -> CustomMetrics.ID_TYPE.RPPS.value.equals(ps.getIdType())).count()));
+        customMetrics.getPsSizeGauges().get(CustomMetrics.PsCustomMetric.PS_RPPS_CREATE_SIZE).set(
+                Math.toIntExact(psDiff.entriesOnlyOnRight().values().stream().filter(ps -> CustomMetrics.ID_TYPE.RPPS.value.equals(ps.getIdType())).count()));
+        customMetrics.getPsSizeGauges().get(CustomMetrics.PsCustomMetric.PS_RPPS_UPDATE_SIZE).set(
+                Math.toIntExact(psDiff.entriesDiffering().values().stream().filter(ps -> CustomMetrics.ID_TYPE.RPPS.value.equals(ps.leftValue().getIdType())).count()));
 
         return psDiff;
     }
@@ -86,9 +86,9 @@ public class PscRestApi {
     public MapDifference<String, Structure> diffStructureMaps(Map<String, Structure> original, Map<String, Structure> revised) {
         MapDifference<String, Structure> structureDiff = Maps.difference(original, revised);
 
-        customMetrics.getAppGauges().get(CustomMetrics.CustomMetric.STRUCTURE_DELETE_SIZE).set(structureDiff.entriesOnlyOnLeft().size());
-        customMetrics.getAppGauges().get(CustomMetrics.CustomMetric.STRUCTURE_CREATE_SIZE).set(structureDiff.entriesOnlyOnRight().size());
-        customMetrics.getAppGauges().get(CustomMetrics.CustomMetric.STRUCTURE_UPDATE_SIZE).set(structureDiff.entriesDiffering().size());
+        customMetrics.getAppStructureSizeGauges().get(CustomMetrics.StructureCustomMetric.STRUCTURE_DELETE_SIZE).set(structureDiff.entriesOnlyOnLeft().size());
+        customMetrics.getAppStructureSizeGauges().get(CustomMetrics.StructureCustomMetric.STRUCTURE_CREATE_SIZE).set(structureDiff.entriesOnlyOnRight().size());
+        customMetrics.getAppStructureSizeGauges().get(CustomMetrics.StructureCustomMetric.STRUCTURE_UPDATE_SIZE).set(structureDiff.entriesDiffering().size());
 
         return structureDiff;
     }
@@ -106,40 +106,40 @@ public class PscRestApi {
     }
 
     private void injectPsDiffTasks(MapDifference<String, Professionnel> diff) {
-        customMetrics.getAppGauges().get(CustomMetrics.CustomMetric.PS_DELETE_PROGRESSION).set(0);
-        customMetrics.getAppGauges().get(CustomMetrics.CustomMetric.PS_CREATE_PROGRESSION).set(0);
-        customMetrics.getAppGauges().get(CustomMetrics.CustomMetric.PS_UPDATE_PROGRESSION).set(0);
+        customMetrics.getAppProgressionGauges().get(CustomMetrics.ProgressionCustomMetric.PS_DELETE_PROGRESSION).set(0);
+        customMetrics.getAppProgressionGauges().get(CustomMetrics.ProgressionCustomMetric.PS_CREATE_PROGRESSION).set(0);
+        customMetrics.getAppProgressionGauges().get(CustomMetrics.ProgressionCustomMetric.PS_UPDATE_PROGRESSION).set(0);
 
         diff.entriesOnlyOnLeft().values().parallelStream().forEach(ps -> {
             new Delete(getPsUrl(ps.getNationalId())).send();
-            customMetrics.getAppGauges().get(CustomMetrics.CustomMetric.PS_DELETE_PROGRESSION).incrementAndGet();
+            customMetrics.getAppProgressionGauges().get(CustomMetrics.ProgressionCustomMetric.PS_DELETE_PROGRESSION).incrementAndGet();
         });
         diff.entriesOnlyOnRight().values().parallelStream().forEach(ps -> {
             new Create(getPsUrl(), jsonFormatter.jsonFromObject(ps)).send();
-            customMetrics.getAppGauges().get(CustomMetrics.CustomMetric.PS_CREATE_PROGRESSION).incrementAndGet();
+            customMetrics.getAppProgressionGauges().get(CustomMetrics.ProgressionCustomMetric.PS_CREATE_PROGRESSION).incrementAndGet();
         });
         diff.entriesDiffering().values().parallelStream().forEach(v -> {
             injectPsUpdateTasks(v.leftValue(), v.rightValue());
-            customMetrics.getAppGauges().get(CustomMetrics.CustomMetric.PS_UPDATE_PROGRESSION).incrementAndGet();
+            customMetrics.getAppProgressionGauges().get(CustomMetrics.ProgressionCustomMetric.PS_UPDATE_PROGRESSION).incrementAndGet();
         });
     }
 
     private void injectStructuresDiffTasks(MapDifference<String, Structure> diff) {
-        customMetrics.getAppGauges().get(CustomMetrics.CustomMetric.STRUCTURE_DELETE_PROGRESSION).set(0);
-        customMetrics.getAppGauges().get(CustomMetrics.CustomMetric.STRUCTURE_CREATE_PROGRESSION).set(0);
-        customMetrics.getAppGauges().get(CustomMetrics.CustomMetric.STRUCTURE_UPDATE_PROGRESSION).set(0);
+        customMetrics.getAppProgressionGauges().get(CustomMetrics.ProgressionCustomMetric.STRUCTURE_DELETE_PROGRESSION).set(0);
+        customMetrics.getAppProgressionGauges().get(CustomMetrics.ProgressionCustomMetric.STRUCTURE_CREATE_PROGRESSION).set(0);
+        customMetrics.getAppProgressionGauges().get(CustomMetrics.ProgressionCustomMetric.STRUCTURE_UPDATE_PROGRESSION).set(0);
 
         diff.entriesOnlyOnLeft().values().parallelStream().forEach(structure -> {
             new Delete(getStructureUrl(structure.getStructureId())).send();
-            customMetrics.getAppGauges().get(CustomMetrics.CustomMetric.STRUCTURE_DELETE_PROGRESSION).incrementAndGet();
+            customMetrics.getAppProgressionGauges().get(CustomMetrics.ProgressionCustomMetric.STRUCTURE_DELETE_PROGRESSION).incrementAndGet();
         });
         diff.entriesOnlyOnRight().values().parallelStream().forEach(structure -> {
             new Create(getStructureUrl(), jsonFormatter.jsonFromObject(structure)).send();
-            customMetrics.getAppGauges().get(CustomMetrics.CustomMetric.STRUCTURE_CREATE_PROGRESSION).incrementAndGet();
+            customMetrics.getAppProgressionGauges().get(CustomMetrics.ProgressionCustomMetric.STRUCTURE_CREATE_PROGRESSION).incrementAndGet();
         });
         diff.entriesDiffering().values().parallelStream().forEach(v -> {
             new Update(getStructureUrl(v.leftValue().getStructureId()), jsonFormatter.jsonFromObject(v.rightValue())).send();
-            customMetrics.getAppGauges().get(CustomMetrics.CustomMetric.STRUCTURE_UPDATE_PROGRESSION).incrementAndGet();
+            customMetrics.getAppProgressionGauges().get(CustomMetrics.ProgressionCustomMetric.STRUCTURE_UPDATE_PROGRESSION).incrementAndGet();
         });
     }
 
