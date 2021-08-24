@@ -2,7 +2,7 @@ job "pscload" {
   datacenters = ["dc1"]
   type = "service"
   vault {
-    policies = ["psc-ecosystem", "rabbitmq"]
+    policies = ["psc-ecosystem"]
     change_mode = "restart"
   }
 
@@ -66,8 +66,8 @@ files.directory=/app/files-repo
 cert.path=/secrets/certificate.pem
 key.path=/secrets/key.pem
 ca.path=/secrets/cacerts.pem
-spring.rabbitmq.host={{ range service "rabbitmq" }}{{ .Address }}{{ end }}
-spring.rabbitmq.port={{ range service "rabbitmq" }}{{ .Port }}{{ end }}
+spring.rabbitmq.host={{ range service "psc-rabbitmq" }}{{ .Address }}{{ end }}
+spring.rabbitmq.port={{ range service "psc-rabbitmq" }}{{ .Port }}{{ end }}
 spring.rabbitmq.username={{ with secret "psc-ecosystem/rabbitmq" }}{{ .Data.data.user }}{{ end }}
 spring.rabbitmq.password={{ with secret "psc-ecosystem/rabbitmq" }}{{ .Data.data.password }}{{ end }}
 extract.download.url=https://service.annuaire.sante.fr/annuaire-sante-webservices/V300/services/extraction/Extraction_ProSanteConnect

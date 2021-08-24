@@ -2,7 +2,7 @@ job "pscload" {
   datacenters = ["dc1"]
   type = "service"
   vault {
-    policies = ["psc-ecosystem", "rabbitmq"]
+    policies = ["psc-ecosystem"]
     change_mode = "restart"
   }
 
