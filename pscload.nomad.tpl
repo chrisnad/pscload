@@ -59,7 +59,7 @@ EOH
       template {
         data = <<EOF
 server.servlet.context-path=/pscload/v1
-api.base.url=http://{{ range service "psc-api-maj" }}{{ .Address }}{{ end }}:{{ range service "psc-api-maj" }}{{ .Port }}{{ end }}/api
+api.base.url=http://{{ range service "psc-api-maj" }}{{ .Address }}:{{ .Port }}{{ end }}/api
 queue.name=file.upload
 schedule.rate.ms=36000000
 files.directory=/app/files-repo
