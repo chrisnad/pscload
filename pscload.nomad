@@ -16,7 +16,7 @@ job "pscload" {
     }
 
     update {
-      max_parallel      = 1
+      max_parallel = 1
     }
 
     network {
