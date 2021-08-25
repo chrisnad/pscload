@@ -12,7 +12,7 @@ runner {
 
 variable "public_hostname" {
     type    = string
-    default = "forge.psc.henix.asipsante.fr"
+    default = "pscload.psc.api.esante.gouv.fr"
 }
 
 # An application to deploy.
