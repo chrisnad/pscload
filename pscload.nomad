@@ -73,6 +73,7 @@ extract.download.url=https://service.annuaire.sante.fr/annuaire-sante-webservice
 test.download.url=https://raw.githubusercontent.com/vsorette/psc-file-repo/main/
 use.ssl=true
 enable.scheduler=false
+auto.continue.scheduler=false
 schedule.cron.expression = 0 0 4/6 * * ?
 schedule.cron.timeZone = Europe/Paris
 management.endpoints.web.exposure.include=health,info,prometheus,metric

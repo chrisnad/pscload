@@ -30,6 +30,9 @@ public class Scheduler implements ApplicationListener<ApplicationReadyEvent> {
     @Value("${enable.scheduler:true}")
     private boolean enabled;
 
+    @Value("${auto.continue.scheduler:false}")
+    private boolean autoContinue;
+
     @Value("${extract.download.url}")
     private String extractDownloadUrl;
 
@@ -46,6 +49,11 @@ public class Scheduler implements ApplicationListener<ApplicationReadyEvent> {
             process.loadLatestFile();
             process.deserializeFileToMaps();
             process.computeDiff();
+            if (autoContinue) {
+                process.serializeMapsToFile();
+                process.uploadChanges();
+                FilesUtils.cleanup(filesDirectory);
+            }
         }
     }
 
