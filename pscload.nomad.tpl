@@ -26,10 +26,11 @@ job "pscload" {
     }
 
     task "pscload" {
+      driver = "docker"
+      user = "root" // for file-repo permissions
       env {
         JAVA_TOOL_OPTIONS="-Xms10g -Xmx10g -XX:+UseG1GC -Dspring.config.location=/secrets/application.properties"
       }
-      driver = "docker"
       config {
         image = "${artifact.image}:${artifact.tag}"
         volumes = [
