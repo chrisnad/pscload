@@ -1,6 +1,7 @@
 package fr.ans.psc.pscload.controller;
 
 import fr.ans.psc.pscload.component.Process;
+import fr.ans.psc.pscload.component.ProcessStep;
 import fr.ans.psc.pscload.component.utils.FilesUtils;
 import org.apache.tomcat.util.http.fileupload.FileUtils;
 import org.slf4j.Logger;
@@ -139,9 +140,13 @@ class ProcessController {
     public String downloadTest(@RequestParam String fileName) throws IOException, GeneralSecurityException {
         String downloadUrl = testDownloadUrl + fileName + ".zip";
         log.info("downloading from {}", downloadUrl);
-        process.downloadAndUnzip(downloadUrl);
-        log.info("download complete");
-        return "download complete!";
+        ProcessStep step = process.downloadAndUnzip(downloadUrl);
+        if (step == ProcessStep.CONTINUE) {
+            log.info("download complete");
+            return "download complete!";
+        }
+        log.info(step.message);
+        return step.message;
     }
 
     /**
@@ -154,9 +159,13 @@ class ProcessController {
     @PostMapping(value = "/process/download/prod", produces = MediaType.APPLICATION_JSON_VALUE)
     public String download() throws IOException, GeneralSecurityException {
         log.info("downloading from {}", extractDownloadUrl);
-        process.downloadAndUnzip(extractDownloadUrl);
-        log.info("download complete");
-        return "download complete!";
+        ProcessStep step = process.downloadAndUnzip(extractDownloadUrl);
+        if (step == ProcessStep.CONTINUE) {
+            log.info("download complete");
+            return "download complete!";
+        }
+        log.info(step.message);
+        return step.message;
     }
 
     /**
@@ -167,9 +176,9 @@ class ProcessController {
      */
     @PostMapping(value = "/process/load/new", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<String> loadNew() throws IOException {
-        boolean isProcessOK = process.loadLatestFile();
-        if (!isProcessOK) {
-            return new ResponseEntity<>("No extract file has been found. You should download one first.", HttpStatus.FORBIDDEN);
+        ProcessStep step = process.loadLatestFile();
+        if (step == ProcessStep.TXT_FILE_ABSENT) {
+            return new ResponseEntity<>(step.message, HttpStatus.PRECONDITION_FAILED);
         }
         log.info("new Ps and Structure maps loaded");
         return new ResponseEntity<>("new maps loading complete", HttpStatus.OK);
@@ -183,9 +192,14 @@ class ProcessController {
      */
     @PostMapping(value = "/process/load/current", produces = MediaType.APPLICATION_JSON_VALUE)
     public String loadCurrent() throws IOException {
-        process.deserializeFileToMaps();
-        log.info("current Ps and Structure maps loaded");
-        return "current maps loading complete!";
+        ProcessStep step = process.deserializeFileToMaps();
+        if (step != ProcessStep.SER_FILE_ABSENT) {
+            log.info("current Ps and Structure maps loaded");
+            return "current maps loading complete!";
+        }
+        log.info(step.message);
+        return step.message;
+
     }
 
     /**
@@ -196,10 +210,15 @@ class ProcessController {
      */
     @PostMapping(value = "/process/serialize", produces = MediaType.APPLICATION_JSON_VALUE)
     public String serialize() throws IOException {
-        process.serializeMapsToFile();
-        log.info("new Ps and Structure maps serialized");
-        return "new Ps and Structure maps serialization complete!";
+        ProcessStep step = process.serializeMapsToFile();
+        if (step == ProcessStep.CONTINUE) {
+            log.info("new Ps and Structure maps serialized");
+            return "new Ps and Structure maps serialization complete!";
+        }
+        log.info(step.message);
+        return step.message;
     }
+
 
     /**
      * Diff string.
@@ -222,9 +241,9 @@ class ProcessController {
     @PostMapping(value = "/process/upload/diff", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<String> uploadDiff() throws IOException {
         log.info("uploading changes");
-        boolean isProcessOK = process.uploadChanges();
-        if (!isProcessOK) {
-            return new ResponseEntity<>("No changes have been uploaded. You should compute diffs first.", HttpStatus.FORBIDDEN);
+        ProcessStep step = process.uploadChanges();
+        if (step == ProcessStep.DIFF_NOT_COMPUTED) {
+            return new ResponseEntity<>(step.message, HttpStatus.PRECONDITION_FAILED);
         }
         FilesUtils.cleanup(filesDirectory);
         log.info("uploading changes finished");
@@ -234,11 +253,26 @@ class ProcessController {
     @PostMapping(value = "/process/run", produces = MediaType.APPLICATION_JSON_VALUE)
     public String runFullProcess() throws IOException {
         log.info("running full process");
-        process.loadLatestFile();
-        process.deserializeFileToMaps();
+        ProcessStep currentStep;
+
+        currentStep = process.loadLatestFile();
+        if (currentStep != ProcessStep.CONTINUE) {
+            return currentStep.message;
+        }
+
+        currentStep = process.deserializeFileToMaps();
+        if (currentStep != ProcessStep.CONTINUE) {
+            return currentStep.message;
+        }
         process.computeDiff();
-        process.serializeMapsToFile();
-        process.uploadChanges();
+        currentStep = process.serializeMapsToFile();
+        if (currentStep != ProcessStep.CONTINUE) {
+            return currentStep.message;
+        }
+        currentStep = process.uploadChanges();
+        if (currentStep != ProcessStep.CONTINUE) {
+            return currentStep.message;
+        }
         log.info("full upload finished");
         return "full upload complete!";
     }
@@ -249,8 +283,15 @@ class ProcessController {
     @PostMapping(value="/process/continue", produces = MediaType.APPLICATION_JSON_VALUE)
     public String continueProcess() throws IOException {
         log.info("resuming process");
-        process.serializeMapsToFile();
-        process.uploadChanges();
+        ProcessStep currentStep;
+
+        currentStep = process.serializeMapsToFile();if (currentStep != ProcessStep.CONTINUE) {
+            return currentStep.message;
+        }
+        currentStep = process.uploadChanges();
+        if (currentStep != ProcessStep.CONTINUE) {
+            return currentStep.message;
+        }
         FilesUtils.cleanup(filesDirectory);
         log.info("full upload finished after resume");
         return "full upload after resume !";

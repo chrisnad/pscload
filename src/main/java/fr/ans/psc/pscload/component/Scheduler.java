@@ -43,19 +43,49 @@ public class Scheduler implements ApplicationListener<ApplicationReadyEvent> {
     /**
      * Download and parse.
      */
-    public void run() throws GeneralSecurityException, IOException {
+    public ProcessStep run() throws GeneralSecurityException, IOException {
         if (enabled) {
             log.info("start batch");
-            process.downloadAndUnzip(extractDownloadUrl);
-            process.loadLatestFile();
-            process.deserializeFileToMaps();
+            ProcessStep currentStep;
+
+            currentStep = process.downloadAndUnzip(extractDownloadUrl);
+            if (currentStep != ProcessStep.CONTINUE) {
+                return currentStep;
+            }
+
+            currentStep = process.downloadAndUnzip(extractDownloadUrl);
+            if (currentStep != ProcessStep.CONTINUE) {
+                return currentStep;
+            }
+
+            currentStep = process.loadLatestFile();
+            if (currentStep != ProcessStep.CONTINUE) {
+                return currentStep;
+            }
+
+            currentStep = process.deserializeFileToMaps();
+            if (currentStep != ProcessStep.CONTINUE) {
+                return currentStep;
+            }
+
             process.computeDiff();
+
             if (autoContinue) {
-                process.serializeMapsToFile();
-                process.uploadChanges();
+                currentStep = process.serializeMapsToFile();
+                if (currentStep != ProcessStep.CONTINUE) {
+                    return currentStep;
+                }
+                currentStep = process.uploadChanges();
+                if (currentStep != ProcessStep.CONTINUE) {
+                    return currentStep;
+                }
+
                 FilesUtils.cleanup(filesDirectory);
             }
+
+            return currentStep;
         }
+        return null;
     }
 
     @Scheduled(cron = "${schedule.cron.expression}", zone = "${schedule.cron.timeZone}")
