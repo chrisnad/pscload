@@ -207,7 +207,7 @@ class ProcessController {
      * @return the string
      */
     @PostMapping(value = "/process/diff", produces = MediaType.APPLICATION_JSON_VALUE)
-    public String diff() throws IOException {
+    public String diff() {
         log.info("computing map differential");
         process.computeDiff();
         log.info("computing map differential complete");

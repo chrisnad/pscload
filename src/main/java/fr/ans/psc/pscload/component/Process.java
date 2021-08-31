@@ -138,7 +138,7 @@ public class Process {
      * @throws FileNotFoundException the file not found exception
      */
     public void serializeMapsToFile() throws FileNotFoundException {
-        // serialise latest extract. This step should be done right here otherwise deserializing this file will fail
+        // serialise latest extract
         String latestExtractDate = FilesUtils.getDateStringFromFileName(latestExtract);
         serializer.serialiseMapsToFile(loader.getPsMap(), loader.getStructureMap(),
                 filesDirectory + "/" + latestExtractDate.concat(".ser"));

@@ -1,6 +1,7 @@
 package fr.ans.psc.pscload.component;
 
 import fr.ans.psc.pscload.component.utils.FilesUtils;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -63,11 +64,11 @@ public class Scheduler implements ApplicationListener<ApplicationReadyEvent> {
     }
 
     @Override
-    public void onApplicationEvent(ApplicationReadyEvent event)  {
+    public void onApplicationEvent(@NotNull ApplicationReadyEvent event)  {
         try {
             run();
         } catch (Exception e) {
-            log.info("scheduled task failed on application ready");
+            log.info(e.getMessage());
         }
     }
 }
