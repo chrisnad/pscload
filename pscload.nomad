@@ -16,7 +16,10 @@ job "pscload" {
     }
 
     update {
-      max_parallel      = 1
+      max_parallel = 1
+      min_healthy_time = "30s"
+      progress_deadline = "5m"
+      healthy_deadline = "2m"
     }
 
     network {
@@ -33,7 +36,7 @@ job "pscload" {
       config {
         image = "prosanteconnect/pscload:latest"
         volumes = [
-          "name=pscload-data,io_priority=high,size=3,repl=3:/app/files-repo"
+          "name=pscload-data,io_priority=high,size=3,repl=3:/workspace/src/main/files-repo"
         ]
         volume_driver = "pxd"
         ports = ["http"]
@@ -61,7 +64,7 @@ EOH
 server.servlet.context-path=/pscload/v1
 api.base.url=http://{{ range service "psc-api-maj" }}{{ .Address }}:{{ .Port }}{{ end }}/api
 queue.name=file.upload
-files.directory=/app/files-repo
+files.directory=/workspace/src/main/files-repo
 cert.path=/secrets/certificate.pem
 key.path=/secrets/key.pem
 ca.path=/secrets/cacerts.pem
