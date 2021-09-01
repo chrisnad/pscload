@@ -73,7 +73,7 @@ public class Process {
      * @throws GeneralSecurityException the general security exception
      * @throws IOException              the io exception
      */
-    public void downloadAndUnzip(String downloadUrl) throws GeneralSecurityException, IOException {
+    public ProcessStep downloadAndUnzip(String downloadUrl) throws GeneralSecurityException, IOException {
         if (useSSL) {
             SSLUtils.initSSLContext(cert, key, ca);
         }
@@ -84,7 +84,9 @@ public class Process {
         if (zipFile != null && FilesUtils.unzip(zipFile, true)) {
             // stage 1: download and unzip successful
             customMetrics.getAppMiscGauges().get(CustomMetrics.MiscCustomMetric.STAGE).set(1);
+            return ProcessStep.CONTINUE;
         }
+        return zipFile == null ? ProcessStep.ZIP_FILE_ABSENT : ProcessStep.TXT_FILE_ALREADY_EXISTING;
     }
 
     /**
@@ -92,18 +94,18 @@ public class Process {
      *
      * @throws IOException the io exception
      */
-    public boolean loadLatestFile() throws IOException {
+    public ProcessStep loadLatestFile() throws IOException {
         Map<String, File> latestFiles = FilesUtils.getLatestExtAndSer(filesDirectory);
 
         latestExtract = latestFiles.get("txt");
         if (latestExtract == null) {
-            return false;
+            return ProcessStep.TXT_FILE_ABSENT;
         }
         log.info("loading file: {}", latestExtract.getName());
 
         loader.loadMapsFromFile(latestExtract);
         customMetrics.getAppMiscGauges().get(CustomMetrics.MiscCustomMetric.STAGE).set(2);
-        return true;
+        return ProcessStep.CONTINUE;
     }
 
     /**
@@ -111,15 +113,19 @@ public class Process {
      *
      * @throws IOException the io exception
      */
-    public void deserializeFileToMaps() throws IOException {
+    public ProcessStep deserializeFileToMaps() throws IOException {
         Map<String, File> latestFiles = FilesUtils.getLatestExtAndSer(filesDirectory);
 
         File ogFile = latestFiles.get("ser");
 
-        if(ogFile != null) {
-            serializer.deserialiseFileToMaps(ogFile);
+        if(ogFile == null) {
+            return ProcessStep.SER_FILE_ABSENT;
         }
-        customMetrics.getAppMiscGauges().get(CustomMetrics.MiscCustomMetric.STAGE).set(3);
+        else {
+            serializer.deserialiseFileToMaps(ogFile);
+            customMetrics.getAppMiscGauges().get(CustomMetrics.MiscCustomMetric.STAGE).set(3);
+            return ProcessStep.CONTINUE;
+        }
     }
 
     /**
@@ -137,30 +143,37 @@ public class Process {
      *
      * @throws FileNotFoundException the file not found exception
      */
-    public void serializeMapsToFile() throws FileNotFoundException {
+    public ProcessStep serializeMapsToFile() throws FileNotFoundException {
         // serialise latest extract
-        String latestExtractDate = FilesUtils.getDateStringFromFileName(latestExtract);
-        serializer.serialiseMapsToFile(loader.getPsMap(), loader.getStructureMap(),
-                filesDirectory + "/" + latestExtractDate.concat(".ser"));
+        if (latestExtract == null) {
+            return ProcessStep.TXT_FILE_ABSENT;
+        }
+        else {
+            String latestExtractDate = FilesUtils.getDateStringFromFileName(latestExtract);
+            serializer.serialiseMapsToFile(loader.getPsMap(), loader.getStructureMap(),
+                    filesDirectory + "/" + latestExtractDate.concat(".ser"));
 
-        Metrics.counter(CustomMetrics.SER_FILE_TAG, CustomMetrics.TIMESTAMP_TAG, latestExtractDate).increment();
-        customMetrics.getAppMiscGauges().get(CustomMetrics.MiscCustomMetric.STAGE).set(5);
+            Metrics.counter(CustomMetrics.SER_FILE_TAG, CustomMetrics.TIMESTAMP_TAG, latestExtractDate).increment();
+            customMetrics.getAppMiscGauges().get(CustomMetrics.MiscCustomMetric.STAGE).set(5);
+            return ProcessStep.CONTINUE;
+        }
+
     }
 
     /**
      * Load changes.
      *
      */
-    public boolean uploadChanges() throws IOException {
+    public ProcessStep uploadChanges() throws IOException {
         customMetrics.getAppMiscGauges().get(CustomMetrics.MiscCustomMetric.STAGE).set(6);
 
         if (psDiff == null || structureDiff == null) {
-           return false;
+           return ProcessStep.DIFF_NOT_COMPUTED;
         }
         pscRestApi.uploadChanges(psDiff, structureDiff);
 
         customMetrics.getAppMiscGauges().get(CustomMetrics.MiscCustomMetric.STAGE).set(0);
-        return true;
+        return ProcessStep.CONTINUE;
     }
 
 }

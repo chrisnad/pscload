@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+    <head>
+        <meta charset="UTF-8">
+        <title>Continue process monitoring</title>
+        <!-- Style -->
+        <link rel="stylesheet" href="main.css">
+        <!-- Fonts -->
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@100;500&display=swap" rel="stylesheet">
+
+        <link rel="shortcut icon" type="image/ico" href="favicon.ico">
+    </head>
+    <body>
+        <div class="banner">
+            <img src="LOGO_ANS_2020_Ligne.png" alt="LOGO ANS" width="80%" height="10%">
+        </div>
+
+        <div class="banner">
+            <h3 class="font-medium">PSCLOAD - ADMINISTRATION</h3>
+        </div>
+
+        <div class="banner">
+            <div class="message-block" th:switch="${step.name()}">
+                <div>
+                    <span th:case="'continue'" class="font-medium">L'opération s'est déroulée correctement. </span>
+                    <span th:text="${message}" class="font-small"></span>
+                </div>
+                <div th:case="'ZIP_FILE_ABSENT'">
+                    <span class="font-medium">
+                        L'opération a échoué : aucune archive RASS n'a été téléchargé. </span>
+                </div>
+                <div th:case="'TXT_FILE_ALREADY_EXISTING'">
+                    <span class="font-medium">Le fichier RASS n'a pas changé depuis la dernière opération. </span>
+                </div>
+                <div th:case="'TXT_FILE_ABSENT'">
+                    <span class="font-medium">
+                        L'opération a échoué : aucun fichier RASS n'a été chargé aujourd'hui. </span>
+                    <span class="font-small">Vous devriez relancer le chargement du fichier en mémoire.</span>
+                </div>
+                <div th:case="'SER_FILE_ABSENT'">
+                    <span class="font-medium">
+                        L'opération a échoué : aucun fichier sérialisé n'est présent. </span>
+                    <span class="font-small"></span>
+                </div>
+                <div th:case="'DIFF_NOT_COMPUTED'">
+                    <span class="font-medium">
+                        L'opération a échoué : les différences entre les fichiers n'ont pas été calculées.</span>
+                </div>
+            </div>
+        </div>
+    </body>
+</html>
