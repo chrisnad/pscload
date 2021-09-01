@@ -11,7 +11,9 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.ModelAndView;
 
 import java.io.File;
 import java.io.IOException;
@@ -26,7 +28,7 @@ import java.util.stream.Stream;
 /**
  * The type Load controller.
  */
-@RestController
+@Controller
 class ProcessController {
 
     /**
@@ -157,15 +159,14 @@ class ProcessController {
      * @throws GeneralSecurityException the general security exception
      */
     @PostMapping(value = "/process/download/prod", produces = MediaType.APPLICATION_JSON_VALUE)
-    public String download() throws IOException, GeneralSecurityException {
+    public ModelAndView download() throws IOException, GeneralSecurityException {
         log.info("downloading from {}", extractDownloadUrl);
+        ModelAndView mav = initializeMAV("Téléchargement de l'archive RASS réussie.");
         ProcessStep step = process.downloadAndUnzip(extractDownloadUrl);
-        if (step == ProcessStep.CONTINUE) {
-            log.info("download complete");
-            return "download complete!";
-        }
-        log.info(step.message);
-        return step.message;
+        mav.addObject("step", step);
+        log.info(step == ProcessStep.CONTINUE ? "download complete!" : step.message);
+
+        return mav;
     }
 
     /**
@@ -175,13 +176,12 @@ class ProcessController {
      * @throws IOException the io exception
      */
     @PostMapping(value = "/process/load/new", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<String> loadNew() throws IOException {
+    public ModelAndView loadNew() throws IOException {
+        ModelAndView mav = initializeMAV("Chargement des nouvelles maps PS et Structure réussie.");
         ProcessStep step = process.loadLatestFile();
-        if (step == ProcessStep.TXT_FILE_ABSENT) {
-            return new ResponseEntity<>(step.message, HttpStatus.PRECONDITION_FAILED);
-        }
-        log.info("new Ps and Structure maps loaded");
-        return new ResponseEntity<>("new maps loading complete", HttpStatus.OK);
+        mav.addObject("step", step);
+        log.info(step == ProcessStep.CONTINUE ? "new Ps and Structure maps loaded" : step.message);
+        return mav;
     }
 
     /**
@@ -191,118 +191,129 @@ class ProcessController {
      * @throws IOException the io exception
      */
     @PostMapping(value = "/process/load/current", produces = MediaType.APPLICATION_JSON_VALUE)
-    public String loadCurrent() throws IOException {
+    public ModelAndView loadCurrent() throws IOException {
+        ModelAndView mav = initializeMAV("Chargement des maps courantes PS et Structure réussie.");
         ProcessStep step = process.deserializeFileToMaps();
-        if (step != ProcessStep.SER_FILE_ABSENT) {
-            log.info("current Ps and Structure maps loaded");
-            return "current maps loading complete!";
-        }
-        log.info(step.message);
-        return step.message;
-
+        mav.addObject("step", step);
+        log.info(step == ProcessStep.CONTINUE ? "current Ps and Structure maps loaded" : step.message);
+        return mav;
     }
 
     /**
-     * Serialize string.
+     * Serialize ModelAndView.
      *
-     * @return the string
+     * @return the ModelAndView
      * @throws IOException the io exception
      */
     @PostMapping(value = "/process/serialize", produces = MediaType.APPLICATION_JSON_VALUE)
-    public String serialize() throws IOException {
+    public ModelAndView serialize() throws IOException {
+        ModelAndView mav = initializeMAV("Sérialisation des maps PS et Structure réussie.");
         ProcessStep step = process.serializeMapsToFile();
-        if (step == ProcessStep.CONTINUE) {
-            log.info("new Ps and Structure maps serialized");
-            return "new Ps and Structure maps serialization complete!";
-        }
-        log.info(step.message);
-        return step.message;
+        mav.addObject("step", step);
+        log.info(step == ProcessStep.CONTINUE ? "new Ps and Structure maps serialized" : step.message);
+        return mav;
     }
 
 
     /**
-     * Diff string.
+     * Diff ModelAndView.
      *
-     * @return the string
+     * @return the ModelAndView
      */
     @PostMapping(value = "/process/diff", produces = MediaType.APPLICATION_JSON_VALUE)
-    public String diff() {
+    public ModelAndView diff() {
         log.info("computing map differential");
         process.computeDiff();
         log.info("computing map differential complete");
-        return "computing map differential complete!";
+        ModelAndView mav = initializeMAV("Les différences entre les fichiers ont bien été calculées.");
+        mav.addObject("step", ProcessStep.CONTINUE);
+        return mav;
     }
 
     /**
-     * Upload string.
+     * Upload ModelAndView.
      *
-     * @return the string
+     * @return ModelAndView
      */
     @PostMapping(value = "/process/upload/diff", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<String> uploadDiff() throws IOException {
+    public ModelAndView uploadDiff() throws IOException {
         log.info("uploading changes");
+        ModelAndView mav = initializeMAV("Les changements du jour ont bien été chargés.");
+
         ProcessStep step = process.uploadChanges();
+        mav.addObject("step", step);
         if (step == ProcessStep.DIFF_NOT_COMPUTED) {
-            return new ResponseEntity<>(step.message, HttpStatus.PRECONDITION_FAILED);
+            return mav;
         }
         FilesUtils.cleanup(filesDirectory);
         log.info("uploading changes finished");
-        return new ResponseEntity<>("uploading changes complete!", HttpStatus.OK);
+
+        return mav;
     }
 
     @PostMapping(value = "/process/run", produces = MediaType.APPLICATION_JSON_VALUE)
-    public String runFullProcess() throws IOException {
+    public ModelAndView runFullProcess() throws IOException {
         log.info("running full process");
+        ModelAndView mav = initializeMAV("Le process complet s'est déroulé convenablement. Les changements du jour ont bien été chargés.");
         ProcessStep currentStep;
 
         currentStep = process.loadLatestFile();
         if (currentStep != ProcessStep.CONTINUE) {
-            return currentStep.message;
+            mav.addObject("step", currentStep);
+            return mav;
         }
 
         currentStep = process.deserializeFileToMaps();
         if (currentStep != ProcessStep.CONTINUE) {
-            return currentStep.message;
+            mav.addObject("step", currentStep);
+            return mav;
         }
         process.computeDiff();
         currentStep = process.serializeMapsToFile();
         if (currentStep != ProcessStep.CONTINUE) {
-            return currentStep.message;
+            mav.addObject("step", currentStep);
+            return mav;
         }
         currentStep = process.uploadChanges();
         if (currentStep != ProcessStep.CONTINUE) {
-            return currentStep.message;
+            mav.addObject("step", currentStep);
+            return mav;
         }
         log.info("full upload finished");
-        return "full upload complete!";
+        return mav;
     }
-
-    // TODO : webhook callback
-    // #1 if (continue)
 
     @PostMapping(value="/process/continue", produces = MediaType.APPLICATION_JSON_VALUE)
-    public String continueProcess() throws IOException {
+    public ModelAndView continueProcess() throws IOException {
         log.info("resuming process");
+
+        ModelAndView mav = initializeMAV("Les changements du jour ont bien été chargés après reprise du process.");
         ProcessStep currentStep;
 
-        currentStep = process.serializeMapsToFile();if (currentStep != ProcessStep.CONTINUE) {
-            return currentStep.message;
+        currentStep = process.serializeMapsToFile();
+        if (currentStep != ProcessStep.CONTINUE) {
+            mav.addObject("step", currentStep);
+            return mav;
         }
+
         currentStep = process.uploadChanges();
         if (currentStep != ProcessStep.CONTINUE) {
-            return currentStep.message;
+            mav.addObject("step", currentStep);
+            return mav;
         }
+
         FilesUtils.cleanup(filesDirectory);
         log.info("full upload finished after resume");
-        return "full upload after resume !";
+        mav.addObject("step", currentStep);
+
+        return mav;
     }
 
-    // #2 if not
-    @PostMapping(value="/process/abort", produces = MediaType.APPLICATION_JSON_VALUE)
-    public String abortProcess() throws IOException {
-        log.info("aborting process");
-        // TBD
-        return "process aborted";
+    private ModelAndView initializeMAV(String message) {
+        ModelAndView mav = new ModelAndView();
+        mav.setViewName("process-step-feedback");
+        mav.addObject("message", message);
+        return mav;
     }
 
 }
