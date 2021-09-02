@@ -1,3 +1,3 @@
 # pscload
 
-Scheduler for RASS differ and db extract
+Scheduler for RASS differ and db extract.
