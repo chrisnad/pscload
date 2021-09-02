@@ -157,7 +157,7 @@
 						<paths>
 							<path>
 								<from>src/main/files-repo</from>
-								<into>/app/files-repo</into>
+								<into>/workspace/src/main/files-repo</into>
 							</path>
 						</paths>
 					</extraDirectories>
