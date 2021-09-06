@@ -29,9 +29,15 @@ public class Loader {
 
     private static final int ROW_LENGTH = 50;
 
+    private static final int TOGGLE_ROW_LENGTH = 2;
+
     private final Map<String, Professionnel> psMap = new HashMap<>();
 
     private final Map<String, Structure> structureMap = new HashMap<>();
+
+    private final Map<String, PsRef> psRefCreateMap = new HashMap<>();
+
+    private final Map<String, PsRef> psRefUpdateMap = new HashMap<>();
 
     @Autowired
     private CustomMetrics customMetrics;
@@ -130,4 +136,43 @@ public class Loader {
                 .filter(structureRef -> structureRef.getStructureId().equals(structureRefRow.getStructureId()))
                 .findAny().ifPresentOrElse(structureRef -> {}, () -> mappedSituation.getStructures().add(structureRefRow));
     }
+
+    public void loadPSRefMapFromFile(File toggleFile) throws FileNotFoundException {
+        log.info("loading {} into list of PsRef", toggleFile.getName());
+
+        ObjectRowProcessor rowProcessor = new ObjectRowProcessor() {
+            @Override
+            public void rowProcessed(Object[] objects, ParsingContext parsingContext) {
+                if (objects.length != TOGGLE_ROW_LENGTH) {
+                    throw new IllegalArgumentException();
+                }
+                String[] items = Arrays.asList(objects).toArray(new String[TOGGLE_ROW_LENGTH]);
+
+                PsRef psRefRow = new PsRef(items);
+                PsRef mappedPsRef = psRefCreateMap.get(psRefRow.getNationalIdRef());
+                if (mappedPsRef == null) {
+                    psRefCreateMap.put(psRefRow.getNationalIdRef(), new PsRef(psRefRow.getNationalIdRef(), psRefRow.getNationalId()));
+                } else {
+                    psRefUpdateMap.put(psRefRow.getNationalId(), new PsRef(psRefRow.getNationalId(), mappedPsRef.getNationalId()));
+                }
+            }
+        };
+
+        CsvParserSettings parserSettings = new CsvParserSettings();
+        parserSettings.getFormat().setLineSeparator("\n");
+        parserSettings.getFormat().setDelimiter(';');
+        parserSettings.setProcessor(rowProcessor);
+        parserSettings.setHeaderExtractionEnabled(true);
+        parserSettings.setNullValue("");
+
+        CsvParser parser = new CsvParser(parserSettings);
+        parser.parse(new BufferedReader(new FileReader(toggleFile)));
+        log.info("loading complete!");
+    }
+
+    public Map<String, PsRef> getPsRefCreateMap() {
+        return psRefCreateMap;
+    }
+
+    public Map<String, PsRef> getPsRefUpdateMap() { return psRefUpdateMap; }
 }

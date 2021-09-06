@@ -14,7 +14,9 @@ import org.springframework.stereotype.Service;
 
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * The type Psc rest api.
@@ -111,9 +113,20 @@ public class PscRestApi {
         customMetrics.getAppProgressionGauges().get(CustomMetrics.ProgressionCustomMetric.PS_UPDATE_PROGRESSION).set(0);
 
         diff.entriesOnlyOnLeft().values().parallelStream().forEach(ps -> {
-            new Delete(getPsUrl(ps.getNationalId())).send();
-            customMetrics.getAppProgressionGauges().get(CustomMetrics.ProgressionCustomMetric.PS_DELETE_PROGRESSION).incrementAndGet();
+                    List<ExerciceProfessionnel> psExPros = ps.getProfessions();
+                    AtomicBoolean deletable = new AtomicBoolean(true);
+                    psExPros.forEach(exerciceProfessionnel -> {
+                        if (exerciceProfessionnel.getProfessionId().equals("60") || exerciceProfessionnel.getProfessionId().equals("69")) {
+                            deletable.set(false);
+                        }
+                    });
+
+                    if (deletable.get()) {
+                        new Delete(getPsUrl(ps.getNationalId())).send();
+                        customMetrics.getAppProgressionGauges().get(CustomMetrics.ProgressionCustomMetric.PS_DELETE_PROGRESSION).incrementAndGet();
+                    }
         });
+
         diff.entriesOnlyOnRight().values().parallelStream().forEach(ps -> {
             new Create(getPsUrl(), jsonFormatter.jsonFromObject(ps)).send();
             customMetrics.getAppProgressionGauges().get(CustomMetrics.ProgressionCustomMetric.PS_CREATE_PROGRESSION).incrementAndGet();
@@ -194,6 +207,18 @@ public class PscRestApi {
         situationDiff.entriesOnlyOnRight().forEach((k, v) -> new Create(getSituationUrl(exProUrl), jsonFormatter.jsonFromObject(v)).send());
         situationDiff.entriesDiffering().forEach((k, v) ->
                 new Update(getSituationUrl(exProUrl, v.rightValue().getSituationId()), jsonFormatter.jsonFromObject(v.rightValue())).send());
+    }
+
+    public void uploadPsRefs(Map<String, PsRef> psRefCreateMap, Map<String, PsRef> psRefUpdateMap) {
+        psRefCreateMap.values().parallelStream().forEach(psRef -> {
+            new Create(getPsRefUrl(), jsonFormatter.jsonFromObject(psRef)).send();
+        });
+        psRefUpdateMap.values().parallelStream().forEach(psRef -> {
+            new Delete(getPsUrl() + "/force/" + psRef.getNationalId()).send();
+        });
+        psRefUpdateMap.values().parallelStream().forEach(psRef -> {
+            new Create(getPsRefUrl(), jsonFormatter.jsonFromObject(psRef)).send();
+        });
     }
 
     /**
@@ -296,5 +321,8 @@ public class PscRestApi {
     public String getStructureUrl(String id) {
         return getStructureUrl() + '/' + URLEncoder.encode(id, StandardCharsets.UTF_8);
     }
+
+    /** Gets psRef url */
+    public String getPsRefUrl() { return apiBaseUrl + "/psref";};
 
 }

@@ -159,6 +159,10 @@
 								<from>src/main/files-repo</from>
 								<into>/workspace/src/main/files-repo</into>
 							</path>
+							<path>
+								<from>src/main/toggle-registry-files-repo</from>
+								<into>/workspace/src/main/toggle-registry-files-repo</into>
+							</path>
 						</paths>
 					</extraDirectories>
 				</configuration>

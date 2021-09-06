@@ -65,6 +65,7 @@ server.servlet.context-path=/pscload/v1
 api.base.url=http://{{ range service "psc-api-maj" }}{{ .Address }}:{{ .Port }}{{ end }}/api
 queue.name=file.upload
 files.directory=/workspace/src/main/files-repo
+toggle.files.directory=/workspace/src/main/toggle-files-repo
 cert.path=/secrets/certificate.pem
 key.path=/secrets/key.pem
 ca.path=/secrets/cacerts.pem
@@ -75,7 +76,7 @@ spring.rabbitmq.password={{ with secret "psc-ecosystem/rabbitmq" }}{{ .Data.data
 extract.download.url=https://service.annuaire.sante.fr/annuaire-sante-webservices/V300/services/extraction/Extraction_ProSanteConnect
 test.download.url=https://raw.githubusercontent.com/vsorette/psc-file-repo/main/
 use.ssl=true
-enable.scheduler=true
+enable.scheduler=false
 auto.continue.scheduler=false
 schedule.cron.expression = 0 0 4/6 * * ?
 schedule.cron.timeZone = Europe/Paris
@@ -88,7 +89,7 @@ EOF
         memory = 11264
       }
       service {
-	name = "$\u007BNOMAD_JOB_NAME\u007D"
+	    name = "$\u007BNOMAD_JOB_NAME\u007D"
         tags = ["urlprefix-${public_hostname}/pscload/v1/"]
         port = "http"
         check {
