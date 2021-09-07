@@ -56,9 +56,6 @@ public class Process {
     @Value("${files.directory}")
     private String filesDirectory;
 
-    @Value("${toggle.registry.files.directory}")
-    private String toggleRegistryDirectory;
-
     @Value("${use.ssl}")
     private boolean useSSL;
 
@@ -184,15 +181,13 @@ public class Process {
     public File uploadToggleFile(MultipartFile mpFile) throws IOException {
         InputStream initialStream = mpFile.getInputStream();
         byte[] buffer = new byte[initialStream.available()];
-        initialStream.read(buffer);
 
-        File toggleFile = new File(filesDirectory + "/toggleFile.txt");
+        File tempToggleFile = File.createTempFile("toggleFile", "tmp");
 
-        try (OutputStream outStream = new FileOutputStream(toggleFile)) {
+        try (OutputStream outStream = new FileOutputStream(tempToggleFile)) {
             outStream.write(buffer);
         }
-
-        return toggleFile;
+        return tempToggleFile;
     }
 
     /**
