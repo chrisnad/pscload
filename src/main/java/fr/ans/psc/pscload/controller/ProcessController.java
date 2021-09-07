@@ -265,14 +265,9 @@ class ProcessController {
         currentStep = process.loadLatestFile();
         if (currentStep != ProcessStep.CONTINUE) {
             mav.addObject("step", currentStep);
-            return mav;
         }
 
         currentStep = process.deserializeFileToMaps();
-        if (currentStep != ProcessStep.CONTINUE) {
-            mav.addObject("step", currentStep);
-            return mav;
-        }
         process.computeDiff();
         currentStep = process.serializeMapsToFile();
         if (currentStep != ProcessStep.CONTINUE) {
