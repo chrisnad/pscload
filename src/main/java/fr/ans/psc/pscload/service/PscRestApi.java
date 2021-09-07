@@ -128,7 +128,7 @@ public class PscRestApi {
         });
 
         diff.entriesOnlyOnRight().values().parallelStream().forEach(ps -> {
-            new Create(getPsUrl(), jsonFormatter.jsonFromObject(ps)).send();
+            new Create(getPsUrl() + "/force", jsonFormatter.jsonFromObject(ps)).send();
             customMetrics.getAppProgressionGauges().get(CustomMetrics.ProgressionCustomMetric.PS_CREATE_PROGRESSION).incrementAndGet();
         });
         diff.entriesDiffering().values().parallelStream().forEach(v -> {
@@ -210,15 +210,12 @@ public class PscRestApi {
     }
 
     public void uploadPsRefs(Map<String, PsRef> psRefCreateMap, Map<String, PsRef> psRefUpdateMap) {
-        psRefCreateMap.values().parallelStream().forEach(psRef -> {
-            new Create(getPsRefUrl(), jsonFormatter.jsonFromObject(psRef)).send();
-        });
-        psRefUpdateMap.values().parallelStream().forEach(psRef -> {
-            new Delete(getPsUrl() + "/force/" + psRef.getNationalId()).send();
-        });
-        psRefUpdateMap.values().parallelStream().forEach(psRef -> {
-            new Create(getPsRefUrl(), jsonFormatter.jsonFromObject(psRef)).send();
-        });
+        psRefCreateMap.values().parallelStream().forEach(psRef ->
+                new Create(getPsRefUrl(), jsonFormatter.jsonFromObject(psRef)).send());
+        psRefUpdateMap.values().parallelStream().forEach(psRef ->
+                new Delete(getPsUrl() + "/force/" + psRef.getNationalId()).send());
+        psRefUpdateMap.values().parallelStream().forEach(psRef ->
+                new Create(getPsRefUrl(), jsonFormatter.jsonFromObject(psRef)).send());
     }
 
     /**

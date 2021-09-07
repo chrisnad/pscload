@@ -43,9 +43,6 @@ class ProcessController {
     @Value("${test.download.url}")
     private String testDownloadUrl;
 
-    @Value("${toggle.registry.url}")
-    private String toggleRegistryDownloadUrl;
-
     @Value("${extract.download.url}")
     private String extractDownloadUrl;
 
@@ -326,17 +323,15 @@ class ProcessController {
 
     @PostMapping(value="/toggle", produces = MediaType.APPLICATION_JSON_VALUE)
     @ResponseBody
-    public String toggleRegistrySource(@RequestParam("toggleFile") MultipartFile mpFile) throws GeneralSecurityException, IOException {
+    public String toggleRegistrySource(@RequestParam("toggleFile") MultipartFile mpFile) throws IOException {
 
-        File toggleFile = process.uploadToggleFile(mpFile);
+        File tempToggleFile = process.uploadToggleFile(mpFile);
 
-        ProcessStep step = process.loadToggleMaps(toggleFile);
+        ProcessStep step = process.loadToggleMaps(tempToggleFile);
         if (step != ProcessStep.CONTINUE) {
             return step.message;
         }
-
         process.uploadPsRefsAfterToggle();
-
         return ProcessStep.CONTINUE.message;
     }
 

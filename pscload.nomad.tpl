@@ -65,7 +65,6 @@ server.servlet.context-path=/pscload/v1
 api.base.url=http://{{ range service "psc-api-maj" }}{{ .Address }}:{{ .Port }}{{ end }}/api
 queue.name=file.upload
 files.directory=/workspace/src/main/files-repo
-toggle.files.directory=/workspace/src/main/toggle-files-repo
 cert.path=/secrets/certificate.pem
 key.path=/secrets/key.pem
 ca.path=/secrets/cacerts.pem
@@ -81,6 +80,8 @@ auto.continue.scheduler=false
 schedule.cron.expression = 0 0 4/6 * * ?
 schedule.cron.timeZone = Europe/Paris
 management.endpoints.web.exposure.include=health,info,prometheus,metric
+spring.servlet.multipart.max-file-size=10MB
+spring.servlet.multipart.max-request-size=10MB
 EOF
         destination = "secrets/application.properties"
       }
