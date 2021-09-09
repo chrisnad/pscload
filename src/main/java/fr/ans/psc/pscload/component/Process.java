@@ -181,13 +181,14 @@ public class Process {
     public File uploadToggleFile(MultipartFile mpFile) throws IOException {
         InputStream initialStream = mpFile.getInputStream();
         byte[] buffer = new byte[initialStream.available()];
+        initialStream.read(buffer);
 
-        File tempToggleFile = File.createTempFile("toggleFile", "tmp");
+        File toggleFile = File.createTempFile("fichier_de_bascule", "tmp");
 
-        try (OutputStream outStream = new FileOutputStream(tempToggleFile)) {
+        try (OutputStream outStream = new FileOutputStream(toggleFile)) {
             outStream.write(buffer);
         }
-        return tempToggleFile;
+        return toggleFile;
     }
 
     /**

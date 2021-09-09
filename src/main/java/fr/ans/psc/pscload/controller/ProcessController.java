@@ -320,9 +320,9 @@ class ProcessController {
     @ResponseBody
     public String toggleRegistrySource(@RequestParam("toggleFile") MultipartFile mpFile) throws IOException {
 
-        File tempToggleFile = process.uploadToggleFile(mpFile);
+        File toggleFile = process.uploadToggleFile(mpFile);
 
-        ProcessStep step = process.loadToggleMaps(tempToggleFile);
+        ProcessStep step = process.loadToggleMaps(toggleFile);
         if (step != ProcessStep.CONTINUE) {
             return step.message;
         }
