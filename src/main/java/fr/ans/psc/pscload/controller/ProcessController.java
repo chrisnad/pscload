@@ -263,6 +263,7 @@ class ProcessController {
         ProcessStep currentStep;
 
         currentStep = process.loadLatestFile();
+        mav.addObject("step", currentStep);
         if (currentStep != ProcessStep.CONTINUE) {
             mav.addObject("step", currentStep);
         }
@@ -270,11 +271,13 @@ class ProcessController {
         currentStep = process.deserializeFileToMaps();
         process.computeDiff();
         currentStep = process.serializeMapsToFile();
+        mav.addObject("step", currentStep);
         if (currentStep != ProcessStep.CONTINUE) {
             mav.addObject("step", currentStep);
             return mav;
         }
         currentStep = process.uploadChanges();
+        mav.addObject("step", currentStep);
         if (currentStep != ProcessStep.CONTINUE) {
             mav.addObject("step", currentStep);
             return mav;
