@@ -140,6 +140,9 @@ public class Loader {
     public void loadPSRefMapFromFile(File toggleFile) throws FileNotFoundException {
         log.info("loading {} into list of PsRef", toggleFile.getName());
 
+        psRefCreateMap.clear();
+        psRefUpdateMap.clear();
+
         ObjectRowProcessor rowProcessor = new ObjectRowProcessor() {
             @Override
             public void rowProcessed(Object[] objects, ParsingContext parsingContext) {
