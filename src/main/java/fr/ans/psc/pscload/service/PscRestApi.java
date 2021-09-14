@@ -215,7 +215,7 @@ public class PscRestApi {
         psRefUpdateMap.values().parallelStream().forEach(psRef ->
                 new Delete(getPsUrl() + "/force/" + psRef.getNationalId()).send());
         psRefUpdateMap.values().parallelStream().forEach(psRef ->
-                new Create(getPsRefUrl(), jsonFormatter.jsonFromObject(psRef)).send());
+                new Update(getPsRefUrl(), jsonFormatter.jsonFromObject(psRef)).send());
     }
 
     /**
