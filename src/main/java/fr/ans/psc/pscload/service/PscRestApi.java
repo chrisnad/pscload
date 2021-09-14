@@ -213,9 +213,9 @@ public class PscRestApi {
         psRefCreateMap.values().parallelStream().forEach(psRef ->
                 new Create(getPsRefUrl(), jsonFormatter.jsonFromObject(psRef)).send());
         psRefUpdateMap.values().parallelStream().forEach(psRef ->
-                new Delete(getPsUrl() + "/force/" + psRef.getNationalId()).send());
+                new Delete(getPsUrl() + "/force/" + psRef.getNationalIdRef()).send());
         psRefUpdateMap.values().parallelStream().forEach(psRef ->
-                new Update(getPsRefUrl() + "/" + psRef.getNationalIdRef(), jsonFormatter.jsonFromObject(psRef)).send());
+                new Create(getPsRefUrl(), jsonFormatter.jsonFromObject(psRef)).send());
     }
 
     /**
