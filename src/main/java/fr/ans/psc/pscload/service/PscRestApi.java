@@ -116,7 +116,7 @@ public class PscRestApi {
                     List<ExerciceProfessionnel> psExPros = ps.getProfessions();
                     AtomicBoolean deletable = new AtomicBoolean(true);
                     psExPros.forEach(exerciceProfessionnel -> {
-                        if (exerciceProfessionnel.getCode().equals("60") || exerciceProfessionnel.getProfessionId().equals("69")) {
+                        if (exerciceProfessionnel.getCode().equals("60") || exerciceProfessionnel.getCode().equals("69")) {
                             deletable.set(false);
                         }
                     });
@@ -142,10 +142,6 @@ public class PscRestApi {
         customMetrics.getAppProgressionGauges().get(CustomMetrics.ProgressionCustomMetric.STRUCTURE_CREATE_PROGRESSION).set(0);
         customMetrics.getAppProgressionGauges().get(CustomMetrics.ProgressionCustomMetric.STRUCTURE_UPDATE_PROGRESSION).set(0);
 
-        diff.entriesOnlyOnLeft().values().parallelStream().forEach(structure -> {
-            new Delete(getStructureUrl(structure.getStructureId())).send();
-            customMetrics.getAppProgressionGauges().get(CustomMetrics.ProgressionCustomMetric.STRUCTURE_DELETE_PROGRESSION).incrementAndGet();
-        });
         diff.entriesOnlyOnRight().values().parallelStream().forEach(structure -> {
             new Create(getStructureUrl(), jsonFormatter.jsonFromObject(structure)).send();
             customMetrics.getAppProgressionGauges().get(CustomMetrics.ProgressionCustomMetric.STRUCTURE_CREATE_PROGRESSION).incrementAndGet();
