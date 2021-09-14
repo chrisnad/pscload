@@ -116,7 +116,7 @@ public class PscRestApi {
                     List<ExerciceProfessionnel> psExPros = ps.getProfessions();
                     AtomicBoolean deletable = new AtomicBoolean(true);
                     psExPros.forEach(exerciceProfessionnel -> {
-                        if (exerciceProfessionnel.getProfessionId().equals("60") || exerciceProfessionnel.getProfessionId().equals("69")) {
+                        if (exerciceProfessionnel.getCode().equals("60") || exerciceProfessionnel.getProfessionId().equals("69")) {
                             deletable.set(false);
                         }
                     });
@@ -215,7 +215,7 @@ public class PscRestApi {
         psRefUpdateMap.values().parallelStream().forEach(psRef ->
                 new Delete(getPsUrl() + "/force/" + psRef.getNationalId()).send());
         psRefUpdateMap.values().parallelStream().forEach(psRef ->
-                new Update(getPsRefUrl(), jsonFormatter.jsonFromObject(psRef)).send());
+                new Update(getPsRefUrl() + "/" + psRef.getNationalIdRef(), jsonFormatter.jsonFromObject(psRef)).send());
     }
 
     /**
