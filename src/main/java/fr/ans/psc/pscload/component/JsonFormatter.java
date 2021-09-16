@@ -3,6 +3,7 @@ package fr.ans.psc.pscload.component;
 import com.google.gson.*;
 import fr.ans.psc.pscload.model.*;
 import fr.ans.psc.pscload.model.response.PsListResponse;
+import fr.ans.psc.pscload.model.response.PsRefResponse;
 import fr.ans.psc.pscload.model.response.PsResponse;
 import org.springframework.stereotype.Component;
 
@@ -90,6 +91,11 @@ public class JsonFormatter {
      */
     public String jsonFromObject(Object o) {
         return gson.toJson(o);
+    }
+
+    public PsRef[] psRefsFromJson(String json) {
+        PsRefResponse response = gson.fromJson(json, PsRefResponse.class);
+        return response.getPsRefs();
     }
 
     public PsListResponse psListFromJson(String json) {

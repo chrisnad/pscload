@@ -1,13 +1,18 @@
 package fr.ans.psc.pscload.model;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.google.gson.annotations.SerializedName;
 
-public class PsRef {
+import java.io.Serializable;
+
+public class PsRef implements Serializable {
 
     @JsonProperty
+    @SerializedName("nationalIdRef")
     private String nationalIdRef;
 
     @JsonProperty
+    @SerializedName("nationalId")
     private String nationalId;
 
     public PsRef(String nationalIdRef, String nationalId) {
