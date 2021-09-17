@@ -59,6 +59,8 @@ public class Process {
     @Value("${use.ssl}")
     private boolean useSSL;
 
+    private final String TOGGLE_FILE_NAME = "Table_de_Correspondance_bascule";
+
     private File latestExtract;
 
     private MapDifference<String, Professionnel> psDiff;
@@ -183,7 +185,7 @@ public class Process {
         byte[] buffer = new byte[initialStream.available()];
         initialStream.read(buffer);
 
-        File toggleFile = File.createTempFile("fichier_de_bascule", "tmp");
+        File toggleFile = File.createTempFile(TOGGLE_FILE_NAME, "tmp");
 
         try (OutputStream outStream = new FileOutputStream(toggleFile)) {
             outStream.write(buffer);
