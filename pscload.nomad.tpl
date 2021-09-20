@@ -82,6 +82,7 @@ schedule.cron.timeZone = Europe/Paris
 management.endpoints.web.exposure.include=health,info,prometheus,metric
 spring.servlet.multipart.max-file-size=10MB
 spring.servlet.multipart.max-request-size=10MB
+deactivation.excluded.profession.codes=60,69
 EOF
         destination = "secrets/application.properties"
       }

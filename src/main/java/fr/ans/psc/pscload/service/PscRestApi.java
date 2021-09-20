@@ -126,13 +126,13 @@ public class PscRestApi {
         diff.entriesOnlyOnLeft().values().parallelStream().forEach(ps -> {
                     List<ExerciceProfessionnel> psExPros = ps.getProfessions();
                     AtomicBoolean deletable = new AtomicBoolean(true);
-                    String[] excludedProfessions = excludedProfessionCodesString.split(",");
+                    String[] excludedProfessions = excludedProfessionCodesString != null ?
+                            excludedProfessionCodesString.split(",") : null;
 
                     psExPros.forEach(exerciceProfessionnel -> {
-                        if (Arrays.stream(excludedProfessions).anyMatch(profession -> profession.equals(exerciceProfessionnel.getCode()))
-                        ) {
-                            deletable.set(false);
-                        }
+                        if (excludedProfessions != null && Arrays.stream(excludedProfessions)
+                                .anyMatch(profession -> profession.equals(exerciceProfessionnel.getCode())))
+                        { deletable.set(false); }
                     });
 
                     if (deletable.get()) {
