@@ -8,15 +8,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.ModelAndView;
 
-import java.io.File;
-import java.io.IOException;
+import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.GeneralSecurityException;
@@ -63,6 +61,7 @@ class ProcessController {
      * @return the string
      */
     @GetMapping(value = "/check", produces = MediaType.APPLICATION_JSON_VALUE)
+    @ResponseBody
     public String index() {
         return "health check OK";
     }
@@ -74,6 +73,7 @@ class ProcessController {
      * @throws IOException the io exception
      */
     @PostMapping(value = "/clean-all", produces = MediaType.APPLICATION_JSON_VALUE)
+    @ResponseBody
     public String cleanAll() throws IOException {
         FileUtils.cleanDirectory(new File(filesDirectory));
         log.info("all files in {} were deleted!", filesDirectory);
@@ -87,6 +87,7 @@ class ProcessController {
      * @throws IOException the io exception
      */
     @PostMapping(value = "/clean", produces = MediaType.APPLICATION_JSON_VALUE)
+    @ResponseBody
     public String clean() throws IOException {
         String[] fileList = Stream.of(Objects.requireNonNull(new File(filesDirectory).listFiles()))
                 .map(File::getAbsolutePath).distinct().toArray(String[]::new);
@@ -123,6 +124,7 @@ class ProcessController {
      */
     @PostMapping(value = "/deleteFile",
             consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+    @ResponseBody
     public String deleteFile(@RequestBody Map<String, Object> payload) throws IOException {
         String fileName = (String) payload.get("fileName");
         FileUtils.forceDelete(new File(filesDirectory, fileName));
@@ -139,6 +141,7 @@ class ProcessController {
      * @throws GeneralSecurityException the general security exception
      */
     @PostMapping(value = "/process/download/test", produces = MediaType.APPLICATION_JSON_VALUE)
+    @ResponseBody
     public String downloadTest(@RequestParam String fileName) throws IOException, GeneralSecurityException {
         String downloadUrl = testDownloadUrl + fileName + ".zip";
         log.info("downloading from {}", downloadUrl);
@@ -159,6 +162,7 @@ class ProcessController {
      * @throws GeneralSecurityException the general security exception
      */
     @PostMapping(value = "/process/download/prod", produces = MediaType.APPLICATION_JSON_VALUE)
+    @ResponseBody
     public ModelAndView download() throws IOException, GeneralSecurityException {
         log.info("downloading from {}", extractDownloadUrl);
         ModelAndView mav = initializeMAV("Téléchargement de l'archive RASS réussie.");
@@ -176,6 +180,7 @@ class ProcessController {
      * @throws IOException the io exception
      */
     @PostMapping(value = "/process/load/new", produces = MediaType.APPLICATION_JSON_VALUE)
+    @ResponseBody
     public ModelAndView loadNew() throws IOException {
         ModelAndView mav = initializeMAV("Chargement des nouvelles maps PS et Structure réussie.");
         ProcessStep step = process.loadLatestFile();
@@ -258,23 +263,21 @@ class ProcessController {
         ProcessStep currentStep;
 
         currentStep = process.loadLatestFile();
+        mav.addObject("step", currentStep);
         if (currentStep != ProcessStep.CONTINUE) {
             mav.addObject("step", currentStep);
-            return mav;
         }
 
         currentStep = process.deserializeFileToMaps();
-        if (currentStep != ProcessStep.CONTINUE) {
-            mav.addObject("step", currentStep);
-            return mav;
-        }
         process.computeDiff();
         currentStep = process.serializeMapsToFile();
+        mav.addObject("step", currentStep);
         if (currentStep != ProcessStep.CONTINUE) {
             mav.addObject("step", currentStep);
             return mav;
         }
         currentStep = process.uploadChanges();
+        mav.addObject("step", currentStep);
         if (currentStep != ProcessStep.CONTINUE) {
             mav.addObject("step", currentStep);
             return mav;
@@ -314,6 +317,20 @@ class ProcessController {
         mav.setViewName("process-step-feedback");
         mav.addObject("message", message);
         return mav;
+    }
+
+    @PostMapping(value="/toggle", produces = MediaType.APPLICATION_JSON_VALUE)
+    @ResponseBody
+    public String toggleRegistrySource(@RequestParam("toggleFile") MultipartFile mpFile) throws IOException {
+
+        File toggleFile = process.uploadToggleFile(mpFile);
+
+        ProcessStep step = process.loadToggleMaps(toggleFile);
+        if (step != ProcessStep.CONTINUE) {
+            return step.message;
+        }
+        process.uploadPsRefsAfterToggle();
+        return ProcessStep.CONTINUE.message;
     }
 
 }

@@ -57,6 +57,14 @@ public class ExerciceProfessionnel implements Serializable {
         return key;
     }
 
+    public String getCode() {
+        String key = Objects.toString(code, "");
+        if ("".equals(key)) {
+            return "ND";
+        }
+        return key;
+    }
+
     public List<SavoirFaire> getExpertises() {
         return expertises;
     }

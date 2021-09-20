@@ -8,19 +8,29 @@ import fr.ans.psc.pscload.model.*;
 import fr.ans.psc.pscload.service.task.Create;
 import fr.ans.psc.pscload.service.task.Delete;
 import fr.ans.psc.pscload.service.task.Update;
+import okhttp3.Call;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.Response;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import java.io.IOException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
-import java.util.Map;
+import java.util.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * The type Psc rest api.
  */
 @Service
 public class PscRestApi {
+
+    private static final Logger log = LoggerFactory.getLogger(PscRestApi.class);
 
     @Autowired
     private CustomMetrics customMetrics;
@@ -30,6 +40,9 @@ public class PscRestApi {
 
     @Value("${api.base.url}")
     private String apiBaseUrl;
+
+    @Value("${deactivation.excluded.profession.codes}")
+    private String excludedProfessionCodesString;
 
     /**
      * Diff PS maps.
@@ -111,11 +124,25 @@ public class PscRestApi {
         customMetrics.getAppProgressionGauges().get(CustomMetrics.ProgressionCustomMetric.PS_UPDATE_PROGRESSION).set(0);
 
         diff.entriesOnlyOnLeft().values().parallelStream().forEach(ps -> {
-            new Delete(getPsUrl(ps.getNationalId())).send();
-            customMetrics.getAppProgressionGauges().get(CustomMetrics.ProgressionCustomMetric.PS_DELETE_PROGRESSION).incrementAndGet();
+                    List<ExerciceProfessionnel> psExPros = ps.getProfessions();
+                    AtomicBoolean deletable = new AtomicBoolean(true);
+                    String[] excludedProfessions = excludedProfessionCodesString.split(",");
+
+                    psExPros.forEach(exerciceProfessionnel -> {
+                        if (Arrays.stream(excludedProfessions).anyMatch(profession -> profession.equals(exerciceProfessionnel.getCode()))
+                        ) {
+                            deletable.set(false);
+                        }
+                    });
+
+                    if (deletable.get()) {
+                        new Delete(getPsUrl(ps.getNationalId())).send();
+                        customMetrics.getAppProgressionGauges().get(CustomMetrics.ProgressionCustomMetric.PS_DELETE_PROGRESSION).incrementAndGet();
+                    }
         });
+
         diff.entriesOnlyOnRight().values().parallelStream().forEach(ps -> {
-            new Create(getPsUrl(), jsonFormatter.jsonFromObject(ps)).send();
+            new Create(getPsUrl() + "/force", jsonFormatter.jsonFromObject(ps)).send();
             customMetrics.getAppProgressionGauges().get(CustomMetrics.ProgressionCustomMetric.PS_CREATE_PROGRESSION).incrementAndGet();
         });
         diff.entriesDiffering().values().parallelStream().forEach(v -> {
@@ -129,10 +156,6 @@ public class PscRestApi {
         customMetrics.getAppProgressionGauges().get(CustomMetrics.ProgressionCustomMetric.STRUCTURE_CREATE_PROGRESSION).set(0);
         customMetrics.getAppProgressionGauges().get(CustomMetrics.ProgressionCustomMetric.STRUCTURE_UPDATE_PROGRESSION).set(0);
 
-        diff.entriesOnlyOnLeft().values().parallelStream().forEach(structure -> {
-            new Delete(getStructureUrl(structure.getStructureId())).send();
-            customMetrics.getAppProgressionGauges().get(CustomMetrics.ProgressionCustomMetric.STRUCTURE_DELETE_PROGRESSION).incrementAndGet();
-        });
         diff.entriesOnlyOnRight().values().parallelStream().forEach(structure -> {
             new Create(getStructureUrl(), jsonFormatter.jsonFromObject(structure)).send();
             customMetrics.getAppProgressionGauges().get(CustomMetrics.ProgressionCustomMetric.STRUCTURE_CREATE_PROGRESSION).incrementAndGet();
@@ -194,6 +217,60 @@ public class PscRestApi {
         situationDiff.entriesOnlyOnRight().forEach((k, v) -> new Create(getSituationUrl(exProUrl), jsonFormatter.jsonFromObject(v)).send());
         situationDiff.entriesDiffering().forEach((k, v) ->
                 new Update(getSituationUrl(exProUrl, v.rightValue().getSituationId()), jsonFormatter.jsonFromObject(v.rightValue())).send());
+    }
+
+    public void uploadPsRefs(Map<String, PsRef> psRefCreateMap, Map<String, PsRef> psRefUpdateMap) {
+
+        try {
+            // get all pairs idRefs / national Id in DB
+            PsRef[] storedPsRefs = getStoredPsRefs();
+
+            psRefCreateMap.values().parallelStream().forEach(psRef ->
+                    createPsRefIfNeeded(psRef, storedPsRefs));
+            psRefUpdateMap.values().parallelStream().forEach(psRef ->
+                    deletePsIfDuplicate(psRef, storedPsRefs));
+            psRefUpdateMap.values().parallelStream().forEach(psRef ->
+                    recreatePsRefAfterDuplicateCleaning(psRef, storedPsRefs));
+        } catch (IOException e) {
+            log.error("error while querying all stored PsRefs: {}", e.getMessage());
+        }
+
+    }
+
+    private PsRef[] getStoredPsRefs() throws IOException {
+        OkHttpClient client = new OkHttpClient();
+        Request.Builder requestBuilder = new Request.Builder().header("Connection", "close");
+        Request request = requestBuilder.url(getPsRefUrl()).get().build();
+
+        Call call = client.newCall(request);
+        Response response = call.execute();
+        String responseBody = Objects.requireNonNull(response.body()).string();
+        log.info("response body: {}", responseBody);
+        PsRef[] psRefs = jsonFormatter.psRefsFromJson(responseBody);
+        response.close();
+
+        return psRefs;
+    }
+
+    private void createPsRefIfNeeded(PsRef psRef, PsRef[] storedPsRefs) {
+        if (Arrays.stream(storedPsRefs).noneMatch(storedPsRef -> storedPsRef.equals(psRef))) {
+            new Delete(getPsUrl() + "/force/" + psRef.getNationalId()).send();
+            PsRef newPsRef = new PsRef(psRef.getNationalId(), psRef.getNationalIdRef());
+            new Create(getPsRefUrl(), jsonFormatter.jsonFromObject(newPsRef)).send();
+        }
+    }
+
+    private void deletePsIfDuplicate(PsRef psRef, PsRef[] storedPsRefs) {
+        if (Arrays.stream(storedPsRefs).noneMatch(storedPsRef -> storedPsRef.equals(psRef))) {
+            new Delete(getPsUrl() + "/force/" + psRef.getNationalId()).send();
+        }
+    }
+
+    private void recreatePsRefAfterDuplicateCleaning(PsRef psRef, PsRef[] storedPsRefs) {
+        if (Arrays.stream(storedPsRefs).noneMatch(storedPsRef -> storedPsRef.equals(psRef))) {
+            PsRef newPsRef = new PsRef(psRef.getNationalId(), psRef.getNationalIdRef());
+            new Create(getPsRefUrl(), jsonFormatter.jsonFromObject(newPsRef)).send();
+        }
     }
 
     /**
@@ -296,5 +373,8 @@ public class PscRestApi {
     public String getStructureUrl(String id) {
         return getStructureUrl() + '/' + URLEncoder.encode(id, StandardCharsets.UTF_8);
     }
+
+    /** Gets psRef url */
+    public String getPsRefUrl() { return apiBaseUrl + "/psref";};
 
 }

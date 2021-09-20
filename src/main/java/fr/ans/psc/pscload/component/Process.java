@@ -15,10 +15,9 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
+import org.springframework.web.multipart.MultipartFile;
 
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.IOException;
+import java.io.*;
 import java.security.GeneralSecurityException;
 import java.util.Map;
 
@@ -59,6 +58,8 @@ public class Process {
 
     @Value("${use.ssl}")
     private boolean useSSL;
+
+    private final String TOGGLE_FILE_NAME = "Table_de_Correspondance_bascule";
 
     private File latestExtract;
 
@@ -174,6 +175,36 @@ public class Process {
 
         customMetrics.getAppMiscGauges().get(CustomMetrics.MiscCustomMetric.STAGE).set(0);
         return ProcessStep.CONTINUE;
+    }
+
+    /**
+     * upload toggle file
+     */
+    public File uploadToggleFile(MultipartFile mpFile) throws IOException {
+        InputStream initialStream = mpFile.getInputStream();
+        byte[] buffer = new byte[initialStream.available()];
+        initialStream.read(buffer);
+
+        File toggleFile = File.createTempFile(TOGGLE_FILE_NAME, "tmp");
+
+        try (OutputStream outStream = new FileOutputStream(toggleFile)) {
+            outStream.write(buffer);
+        }
+        return toggleFile;
+    }
+
+    /**
+     * Load toggle file.
+     *
+     * @throws IOException the io exception
+     */
+    public ProcessStep loadToggleMaps(File toggleFile) throws IOException {
+        loader.loadPSRefMapFromFile(toggleFile);
+        return ProcessStep.CONTINUE;
+    }
+
+    public void uploadPsRefsAfterToggle() {
+        pscRestApi.uploadPsRefs(loader.getPsRefCreateMap(), loader.getPsRefUpdateMap());
     }
 
 }
