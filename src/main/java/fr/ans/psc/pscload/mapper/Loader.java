@@ -156,7 +156,7 @@ public class Loader {
                 if (mappedPsRef == null) {
                     psRefCreateMap.put(psRefRow.getNationalIdRef(), new PsRef(psRefRow.getNationalIdRef(), psRefRow.getNationalId()));
                 } else {
-                    psRefUpdateMap.put(psRefRow.getNationalId(), new PsRef(psRefRow.getNationalId(), mappedPsRef.getNationalId()));
+                    psRefUpdateMap.put(psRefRow.getNationalIdRef(), new PsRef(psRefRow.getNationalIdRef(), psRefRow.getNationalId()));
                 }
             }
         };

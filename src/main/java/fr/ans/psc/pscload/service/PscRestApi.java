@@ -222,6 +222,7 @@ public class PscRestApi {
     public void uploadPsRefs(Map<String, PsRef> psRefCreateMap, Map<String, PsRef> psRefUpdateMap) {
 
         try {
+            // get all pairs idRefs / national Id in DB
             PsRef[] storedPsRefs = getStoredPsRefs();
 
             psRefCreateMap.values().parallelStream().forEach(psRef ->
@@ -253,19 +254,22 @@ public class PscRestApi {
 
     private void createPsRefIfNeeded(PsRef psRef, PsRef[] storedPsRefs) {
         if (Arrays.stream(storedPsRefs).noneMatch(storedPsRef -> storedPsRef.equals(psRef))) {
-            new Create(getPsRefUrl(), jsonFormatter.jsonFromObject(psRef)).send();
+            new Delete(getPsUrl() + "/force/" + psRef.getNationalId()).send();
+            PsRef newPsRef = new PsRef(psRef.getNationalId(), psRef.getNationalIdRef());
+            new Create(getPsRefUrl(), jsonFormatter.jsonFromObject(newPsRef)).send();
         }
     }
 
     private void deletePsIfDuplicate(PsRef psRef, PsRef[] storedPsRefs) {
         if (Arrays.stream(storedPsRefs).noneMatch(storedPsRef -> storedPsRef.equals(psRef))) {
-            new Delete(getPsUrl() + "/force/" + psRef.getNationalIdRef()).send();
+            new Delete(getPsUrl() + "/force/" + psRef.getNationalId()).send();
         }
     }
 
     private void recreatePsRefAfterDuplicateCleaning(PsRef psRef, PsRef[] storedPsRefs) {
         if (Arrays.stream(storedPsRefs).noneMatch(storedPsRef -> storedPsRef.equals(psRef))) {
-            new Create(getPsRefUrl(), jsonFormatter.jsonFromObject(psRef)).send();
+            PsRef newPsRef = new PsRef(psRef.getNationalId(), psRef.getNationalIdRef());
+            new Create(getPsRefUrl(), jsonFormatter.jsonFromObject(newPsRef)).send();
         }
     }
 
