@@ -253,23 +253,27 @@ public class PscRestApi {
     }
 
     private void createPsRefIfNeeded(PsRef psRef, PsRef[] storedPsRefs) {
-        if (Arrays.stream(storedPsRefs).noneMatch(storedPsRef -> storedPsRef.equals(psRef))) {
-            new Delete(getPsUrl() + "/force/" + psRef.getNationalId()).send();
-            PsRef newPsRef = new PsRef(psRef.getNationalId(), psRef.getNationalIdRef());
-            new Create(getPsRefUrl(), jsonFormatter.jsonFromObject(newPsRef)).send();
+        if (Arrays.stream(storedPsRefs).noneMatch(storedPsRef ->
+                storedPsRef.getNationalIdRef().equals(psRef.getNationalIdRef())
+                && storedPsRef.getNationalId().equals(psRef.getNationalId()))) {
+            new Delete(getPsUrl() + "/force/" + psRef.getNationalIdRef()).send();
+            new Create(getPsRefUrl(), jsonFormatter.jsonFromObject(psRef)).send();
         }
     }
 
     private void deletePsIfDuplicate(PsRef psRef, PsRef[] storedPsRefs) {
-        if (Arrays.stream(storedPsRefs).noneMatch(storedPsRef -> storedPsRef.equals(psRef))) {
-            new Delete(getPsUrl() + "/force/" + psRef.getNationalId()).send();
+        if (Arrays.stream(storedPsRefs).noneMatch(storedPsRef ->
+                storedPsRef.getNationalIdRef().equals(psRef.getNationalIdRef())
+                        && storedPsRef.getNationalId().equals(psRef.getNationalId()))) {
+            new Delete(getPsUrl() + "/force/" + psRef.getNationalIdRef()).send();
         }
     }
 
     private void recreatePsRefAfterDuplicateCleaning(PsRef psRef, PsRef[] storedPsRefs) {
-        if (Arrays.stream(storedPsRefs).noneMatch(storedPsRef -> storedPsRef.equals(psRef))) {
-            PsRef newPsRef = new PsRef(psRef.getNationalId(), psRef.getNationalIdRef());
-            new Create(getPsRefUrl(), jsonFormatter.jsonFromObject(newPsRef)).send();
+        if (Arrays.stream(storedPsRefs).noneMatch(storedPsRef ->
+                storedPsRef.getNationalIdRef().equals(psRef.getNationalIdRef())
+                && storedPsRef.getNationalId().equals(psRef.getNationalId()))) {
+            new Create(getPsRefUrl(), jsonFormatter.jsonFromObject(psRef)).send();
         }
     }
 

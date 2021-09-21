@@ -154,9 +154,9 @@ public class Loader {
                 PsRef psRefRow = new PsRef(items);
                 PsRef mappedPsRef = psRefCreateMap.get(psRefRow.getNationalIdRef());
                 if (mappedPsRef == null) {
-                    psRefCreateMap.put(psRefRow.getNationalIdRef(), new PsRef(psRefRow.getNationalIdRef(), psRefRow.getNationalId()));
+                    psRefCreateMap.put(psRefRow.getNationalIdRef(), psRefRow);
                 } else {
-                    psRefUpdateMap.put(psRefRow.getNationalIdRef(), new PsRef(psRefRow.getNationalIdRef(), psRefRow.getNationalId()));
+                    psRefUpdateMap.put(psRefRow.getNationalIdRef(), psRefRow);
                 }
             }
         };
