@@ -10,11 +10,6 @@ runner {
   }
 }
 
-variable "public_hostname" {
-  type    = string
-  default = "pscload.psc.api.esante.gouv.fr"
-}
-
 # An application to deploy.
 app "prosanteconnect/pscload" {
 
@@ -37,8 +32,13 @@ app "prosanteconnect/pscload" {
   deploy {
     use "nomad-jobspec" {
       jobspec = templatefile("${path.app}/pscload.nomad.tpl", {
-        public_hostname = var.public_hostname
+        datacenter = var.datacenter
       })
     }
   }
+}
+
+variable "datacenter" {
+  type    = string
+  default = "production"
 }

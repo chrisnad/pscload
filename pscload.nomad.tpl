@@ -1,5 +1,5 @@
 job "pscload" {
-  datacenters = ["dc1"]
+  datacenters = ["${datacenter}}"]
   type = "service"
   vault {
     policies = ["psc-ecosystem"]
@@ -60,6 +60,13 @@ EOH
         destination = "secrets/cacerts.pem"
       }
       template {
+        destination = "local/file.env"
+        env = true
+        data = <<EOH
+PUBLIC_HOSTNAME={{ with secret "psc-ecosystem/pscload" }}{{ .Data.data.public_hostname }}{{ end }}
+EOH
+      }
+      template {
         data = <<EOF
 server.servlet.context-path=/pscload/v1
 api.base.url=http://{{ range service "psc-api-maj" }}{{ .Address }}:{{ .Port }}{{ end }}/api
@@ -72,8 +79,8 @@ spring.rabbitmq.host={{ range service "psc-rabbitmq" }}{{ .Address }}{{ end }}
 spring.rabbitmq.port={{ range service "psc-rabbitmq" }}{{ .Port }}{{ end }}
 spring.rabbitmq.username={{ with secret "psc-ecosystem/rabbitmq" }}{{ .Data.data.user }}{{ end }}
 spring.rabbitmq.password={{ with secret "psc-ecosystem/rabbitmq" }}{{ .Data.data.password }}{{ end }}
-extract.download.url=https://service.annuaire.sante.fr/annuaire-sante-webservices/V300/services/extraction/Extraction_ProSanteConnect
-test.download.url=https://raw.githubusercontent.com/vsorette/psc-file-repo/main/
+extract.download.url={{ with secret "psc-ecosystem/pscload" }}{{ .Data.data.extract_download_url }}{{ end }}
+test.download.url={{ with secret "psc-ecosystem/pscload" }}{{ .Data.data.test_download_url }}{{ end }}
 use.ssl=true
 enable.scheduler=true
 auto.continue.scheduler=false
@@ -82,9 +89,10 @@ schedule.cron.timeZone = Europe/Paris
 management.endpoints.web.exposure.include=health,info,prometheus,metric
 spring.servlet.multipart.max-file-size=10MB
 spring.servlet.multipart.max-request-size=10MB
-deactivation.excluded.profession.codes=60,69
+deactivation.excluded.profession.codes={{ with secret "psc-ecosystem/pscload" }}{{ .Data.data.deactivation_codes_exclusion_list }}{{ end }}
 EOF
         destination = "secrets/application.properties"
+        change_mode = "restart"
       }
       resources {
         cpu = 7000
@@ -92,7 +100,7 @@ EOF
       }
       service {
 	    name = "$\u007BNOMAD_JOB_NAME\u007D"
-        tags = ["urlprefix-${public_hostname}/pscload/v1/"]
+        tags = ["urlprefix-$\u007BPUBLIC_HOSTNAME\u007D/pscload/v1/"]
         port = "http"
         check {
           type = "http"
