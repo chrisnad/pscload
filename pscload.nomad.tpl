@@ -1,5 +1,5 @@
 job "pscload" {
-  datacenters = ["${datacenter}}"]
+  datacenters = ["${datacenter}"]
   type = "service"
   vault {
     policies = ["psc-ecosystem"]
