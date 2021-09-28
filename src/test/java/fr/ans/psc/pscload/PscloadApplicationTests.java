@@ -67,7 +67,7 @@ class PscloadApplicationTests {
 
 	@Test
 	@Disabled
-	void loadDbFromFileTest() throws FileNotFoundException {
+	void loadDbFromFileTest() throws IOException {
 		String url = "http://localhost:8000/api/ps";
 		long startTime = System.currentTimeMillis();
 
@@ -90,7 +90,7 @@ class PscloadApplicationTests {
 
 	@Test
 	@Disabled
-	void deserializeAndDiff() throws FileNotFoundException {
+	void deserializeAndDiff() throws IOException {
 		String url = "http://localhost:8000/api/ps";
 		long startTime = System.currentTimeMillis();
 
@@ -119,7 +119,7 @@ class PscloadApplicationTests {
 
 	@Test
 	@Disabled
-	void loadThenSerializeThenDeserializeTest() throws FileNotFoundException {
+	void loadThenSerializeThenDeserializeTest() throws IOException {
 		long startTime = System.currentTimeMillis();
 
 		File extFile = new File("src/test/resources/Extraction_PSC.txt");

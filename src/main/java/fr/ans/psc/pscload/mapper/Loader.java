@@ -11,10 +11,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileReader;
+import java.io.*;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
@@ -42,7 +40,7 @@ public class Loader {
     @Autowired
     private CustomMetrics customMetrics;
 
-    public void loadMapsFromFile(File file) throws FileNotFoundException {
+    public void loadMapsFromFile(File file) throws IOException {
         log.info("loading {} into list of Ps", file.getName());
         psMap.clear();
         structureMap.clear();
@@ -95,7 +93,7 @@ public class Loader {
         parserSettings.setNullValue("");
 
         CsvParser parser = new CsvParser(parserSettings);
-        parser.parse(new BufferedReader(new FileReader(file)));
+        parser.parse(new BufferedReader(new FileReader(file, StandardCharsets.UTF_8)));
         log.info("loading complete!");
 
         customMetrics.getPsSizeGauges().get(CustomMetrics.PsCustomMetric.PS_ANY_UPLOAD_SIZE).set(psMap.size());
