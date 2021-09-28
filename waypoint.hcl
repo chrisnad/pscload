@@ -7,7 +7,7 @@ runner {
   enabled = true
   data_source "git" {
     url = "https://github.com/prosanteconnect/pscload.git"
-    ref = "main"
+    ref = var.datacenter
   }
 }
 
@@ -41,5 +41,5 @@ app "prosanteconnect/pscload" {
 
 variable "datacenter" {
   type    = string
-  default = "production"
+  default = "dc1"
 }
