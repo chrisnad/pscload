@@ -6,12 +6,14 @@ import com.univocity.parsers.csv.CsvParser;
 import com.univocity.parsers.csv.CsvParserSettings;
 import fr.ans.psc.pscload.metrics.CustomMetrics;
 import fr.ans.psc.pscload.model.*;
+import org.apache.any23.encoding.TikaEncodingDetector;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.io.*;
+import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -93,7 +95,12 @@ public class Loader {
         parserSettings.setNullValue("");
 
         CsvParser parser = new CsvParser(parserSettings);
-        parser.parse(new BufferedReader(new FileReader(file, StandardCharsets.UTF_8)));
+
+        // get file charset to secure data encoding
+        InputStream is = new FileInputStream(file);
+        Charset detectedCharset = Charset.forName(new TikaEncodingDetector().guessEncoding(is));
+
+        parser.parse(new BufferedReader(new FileReader(file, detectedCharset)));
         log.info("loading complete!");
 
         customMetrics.getPsSizeGauges().get(CustomMetrics.PsCustomMetric.PS_ANY_UPLOAD_SIZE).set(psMap.size());
@@ -135,7 +142,7 @@ public class Loader {
                 .findAny().ifPresentOrElse(structureRef -> {}, () -> mappedSituation.getStructures().add(structureRefRow));
     }
 
-    public void loadPSRefMapFromFile(File toggleFile) throws FileNotFoundException {
+    public void loadPSRefMapFromFile(File toggleFile) throws IOException {
         log.info("loading {} into list of PsRef", toggleFile.getName());
 
         psRefCreateMap.clear();
@@ -167,7 +174,10 @@ public class Loader {
         parserSettings.setNullValue("");
 
         CsvParser parser = new CsvParser(parserSettings);
-        parser.parse(new BufferedReader(new FileReader(toggleFile)));
+        // get file charset to secure data encoding
+        InputStream is = new FileInputStream(toggleFile);
+        Charset detectedCharset = Charset.forName(new TikaEncodingDetector().guessEncoding(is));
+        parser.parse(new BufferedReader(new FileReader(toggleFile, detectedCharset)));
         log.info("loading complete!");
     }
 
