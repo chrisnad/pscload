@@ -106,6 +106,11 @@
 			<artifactId>bcpkix-jdk15on</artifactId>
 			<version>1.68</version>
 		</dependency>
+		<dependency>
+			<groupId>org.apache.any23</groupId>
+			<artifactId>apache-any23-encoding</artifactId>
+			<version>1.1</version>
+		</dependency>
 
 	</dependencies>
 
