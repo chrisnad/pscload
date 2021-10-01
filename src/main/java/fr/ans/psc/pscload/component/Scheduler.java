@@ -79,6 +79,10 @@ public class Scheduler implements ApplicationListener<ApplicationReadyEvent> {
                 if (currentStep != ProcessStep.CONTINUE) {
                     return currentStep;
                 }
+                currentStep = process.triggerExtract();
+                if (currentStep != ProcessStep.CONTINUE) {
+                    return currentStep;
+                }
 
                 FilesUtils.cleanup(filesDirectory);
             }

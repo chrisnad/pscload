@@ -161,7 +161,7 @@ class ProcessController {
      * @throws IOException              the io exception
      * @throws GeneralSecurityException the general security exception
      */
-    @PostMapping(value = "/process/download/prod", produces = MediaType.APPLICATION_JSON_VALUE)
+    @PostMapping(value = "/process/download", produces = MediaType.APPLICATION_JSON_VALUE)
     @ResponseBody
     public ModelAndView download() throws IOException, GeneralSecurityException {
         log.info("downloading from {}", extractDownloadUrl);
@@ -282,6 +282,11 @@ class ProcessController {
             mav.addObject("step", currentStep);
             return mav;
         }
+        currentStep = process.triggerExtract();
+        if (currentStep != ProcessStep.CONTINUE) {
+            mav.addObject("step", currentStep);
+            return mav;
+        }
         log.info("full upload finished");
         return mav;
     }
@@ -300,6 +305,12 @@ class ProcessController {
         }
 
         currentStep = process.uploadChanges();
+        if (currentStep != ProcessStep.CONTINUE) {
+            mav.addObject("step", currentStep);
+            return mav;
+        }
+
+        currentStep = process.triggerExtract();
         if (currentStep != ProcessStep.CONTINUE) {
             mav.addObject("step", currentStep);
             return mav;

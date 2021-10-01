@@ -70,6 +70,7 @@ EOH
         data = <<EOF
 server.servlet.context-path=/pscload/v1
 api.base.url=http://{{ range service "psc-api-maj" }}{{ .Address }}:{{ .Port }}{{ end }}/api
+pscextract.base.url=http://{{ range service "pscextract" }}{{ .Address }}:{{ .Port }}{{ end }}/v1
 queue.name=file.upload
 files.directory=/workspace/src/main/files-repo
 cert.path=/secrets/certificate.pem
