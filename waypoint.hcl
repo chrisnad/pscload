@@ -20,7 +20,7 @@ app "prosanteconnect/pscload" {
   # Build specifies how an application should be deployed.
   build {
     use "pack" {
-      builder = "registry.repo.proxy-dev-forge.asip.hst.fluxus.net/gcr.io/buildpacks/builder:v1"
+      builder = "registry.repo.proxy-dev-forge.asip.hst.fluxus.net/heroku/buildpacks:18"
     }
 
     registry {
