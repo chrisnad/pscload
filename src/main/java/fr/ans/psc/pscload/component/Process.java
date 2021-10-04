@@ -10,6 +10,7 @@ import fr.ans.psc.pscload.model.Professionnel;
 import fr.ans.psc.pscload.model.Structure;
 import fr.ans.psc.pscload.service.PscRestApi;
 import io.micrometer.core.instrument.Metrics;
+import okhttp3.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,6 +21,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.*;
 import java.security.GeneralSecurityException;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * The type Loader.
@@ -66,6 +68,9 @@ public class Process {
     private MapDifference<String, Professionnel> psDiff;
 
     private MapDifference<String, Structure> structureDiff;
+
+    @Value("${pscextract.base.url}")
+    private String pscextractBaseUrl;
 
     /**
      * Download and parse.
@@ -174,6 +179,24 @@ public class Process {
         pscRestApi.uploadChanges(psDiff, structureDiff);
 
         customMetrics.getAppMiscGauges().get(CustomMetrics.MiscCustomMetric.STAGE).set(0);
+        return ProcessStep.CONTINUE;
+    }
+
+    public ProcessStep triggerExtract() throws IOException {
+        log.info("prepare trigger RASS extract");
+        OkHttpClient client = new OkHttpClient();
+        Request.Builder requestBuilder = new Request.Builder();
+        RequestBody body = RequestBody.create("{}", MediaType.parse("application/json"));
+        Request request = requestBuilder.url(pscextractBaseUrl + "/generate-extract")
+                .post(body).build();
+
+        Call call = client.newCall(request);
+        Response response = call.execute();
+        log.info("extract response", response);
+        String responseBody = Objects.requireNonNull(response.body()).string();
+        log.info("response body: {}", responseBody);
+        response.close();
+
         return ProcessStep.CONTINUE;
     }
 
