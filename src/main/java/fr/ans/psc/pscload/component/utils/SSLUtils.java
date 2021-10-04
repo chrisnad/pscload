@@ -184,6 +184,8 @@ public class SSLUtils {
             InputStream inputStream = httpConn.getInputStream();
 
             // opens an output stream to save into file
+            log.info("zipFile");
+            log.info(zipFile);
             FileOutputStream outputStream = new FileOutputStream(zipFile);
 
             int bytesRead;
