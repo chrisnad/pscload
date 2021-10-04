@@ -21,6 +21,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.*;
 import java.security.GeneralSecurityException;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * The type Loader.
@@ -182,6 +183,7 @@ public class Process {
     }
 
     public ProcessStep triggerExtract() throws IOException {
+        log.info("prepare trigger RASS extract");
         OkHttpClient client = new OkHttpClient();
         Request.Builder requestBuilder = new Request.Builder();
         RequestBody body = RequestBody.create("{}", MediaType.parse("application/json"));
@@ -190,6 +192,10 @@ public class Process {
 
         Call call = client.newCall(request);
         Response response = call.execute();
+        log.info("extract response", response);
+        String responseBody = Objects.requireNonNull(response.body()).string();
+        log.info("response body: {}", responseBody);
+        response.close();
 
         return ProcessStep.CONTINUE;
     }
