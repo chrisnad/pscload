@@ -18,7 +18,7 @@ import java.security.GeneralSecurityException;
  * The type Scheduler.
  */
 @Component
-public class Scheduler implements ApplicationListener<ApplicationReadyEvent> {
+public class Scheduler {
 
     /**
      * The logger.
@@ -43,6 +43,7 @@ public class Scheduler implements ApplicationListener<ApplicationReadyEvent> {
     /**
      * Download and parse.
      */
+    @Scheduled(cron = "${schedule.cron.expression}", zone = "${schedule.cron.timeZone}")
     public ProcessStep run() throws GeneralSecurityException, IOException {
         if (enabled) {
             log.info("start batch");
@@ -90,19 +91,5 @@ public class Scheduler implements ApplicationListener<ApplicationReadyEvent> {
             return currentStep;
         }
         return null;
-    }
-
-    @Scheduled(cron = "${schedule.cron.expression}", zone = "${schedule.cron.timeZone}")
-    public void scheduleProcess() throws GeneralSecurityException, IOException {
-        run();
-    }
-
-    @Override
-    public void onApplicationEvent(@NotNull ApplicationReadyEvent event)  {
-        try {
-            run();
-        } catch (Exception e) {
-            log.info(e.getMessage());
-        }
     }
 }
