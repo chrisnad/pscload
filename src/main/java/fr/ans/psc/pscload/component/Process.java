@@ -59,7 +59,7 @@ public class Process {
     private String filesDirectory;
 
     @Value("${use.ssl}")
-    private boolean useSSL;
+    private boolean useCustomSSLContext;
 
     private final String TOGGLE_FILE_NAME = "Table_de_Correspondance_bascule";
 
@@ -80,7 +80,7 @@ public class Process {
      * @throws IOException              the io exception
      */
     public ProcessStep downloadAndUnzip(String downloadUrl) throws GeneralSecurityException, IOException {
-        if (useSSL) {
+        if (useCustomSSLContext) {
             SSLUtils.initSSLContext(cert, key, ca);
         }
         // downloads only if zip doesnt exist in our files directory
@@ -145,6 +145,22 @@ public class Process {
     }
 
     /**
+     * Load changes.
+     *
+     */
+    public ProcessStep uploadChanges() {
+        customMetrics.getAppMiscGauges().get(CustomMetrics.MiscCustomMetric.STAGE).set(5);
+
+        if (psDiff == null || structureDiff == null) {
+           return ProcessStep.DIFF_NOT_COMPUTED;
+        }
+        pscRestApi.uploadChanges(psDiff, structureDiff);
+
+        customMetrics.getAppMiscGauges().get(CustomMetrics.MiscCustomMetric.STAGE).set(0);
+        return ProcessStep.CONTINUE;
+    }
+
+    /**
      * Serialize maps to file.
      *
      * @throws FileNotFoundException the file not found exception
@@ -160,26 +176,10 @@ public class Process {
                     filesDirectory + "/" + latestExtractDate.concat(".ser"));
 
             Metrics.counter(CustomMetrics.SER_FILE_TAG, CustomMetrics.TIMESTAMP_TAG, latestExtractDate).increment();
-            customMetrics.getAppMiscGauges().get(CustomMetrics.MiscCustomMetric.STAGE).set(5);
+            customMetrics.getAppMiscGauges().get(CustomMetrics.MiscCustomMetric.STAGE).set(6);
             return ProcessStep.CONTINUE;
         }
 
-    }
-
-    /**
-     * Load changes.
-     *
-     */
-    public ProcessStep uploadChanges() throws IOException {
-        customMetrics.getAppMiscGauges().get(CustomMetrics.MiscCustomMetric.STAGE).set(6);
-
-        if (psDiff == null || structureDiff == null) {
-           return ProcessStep.DIFF_NOT_COMPUTED;
-        }
-        pscRestApi.uploadChanges(psDiff, structureDiff);
-
-        customMetrics.getAppMiscGauges().get(CustomMetrics.MiscCustomMetric.STAGE).set(0);
-        return ProcessStep.CONTINUE;
     }
 
     public ProcessStep triggerExtract() throws IOException {

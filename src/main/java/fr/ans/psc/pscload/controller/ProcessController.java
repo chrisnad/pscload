@@ -270,8 +270,6 @@ class ProcessController {
 
         currentStep = process.deserializeFileToMaps();
         process.computeDiff();
-        currentStep = process.serializeMapsToFile();
-        mav.addObject("step", currentStep);
         if (currentStep != ProcessStep.CONTINUE) {
             mav.addObject("step", currentStep);
             return mav;
@@ -282,6 +280,8 @@ class ProcessController {
             mav.addObject("step", currentStep);
             return mav;
         }
+        currentStep = process.serializeMapsToFile();
+        mav.addObject("step", currentStep);
         currentStep = process.triggerExtract();
         if (currentStep != ProcessStep.CONTINUE) {
             mav.addObject("step", currentStep);
