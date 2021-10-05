@@ -72,11 +72,11 @@ public class Scheduler {
             process.computeDiff();
 
             if (autoContinue) {
-                currentStep = process.serializeMapsToFile();
+                currentStep = process.uploadChanges();
                 if (currentStep != ProcessStep.CONTINUE) {
                     return currentStep;
                 }
-                currentStep = process.uploadChanges();
+                currentStep = process.serializeMapsToFile();
                 if (currentStep != ProcessStep.CONTINUE) {
                     return currentStep;
                 }
