@@ -20,9 +20,6 @@ app "prosanteconnect/pscload" {
   # Build specifies how an application should be deployed.
   build {
     use "docker" {
-      build_args = {
-        "proxy_address" = var.proxy_address
-      }
       dockerfile = "${path.app}/${var.dockerfile_path}"
     }
 
