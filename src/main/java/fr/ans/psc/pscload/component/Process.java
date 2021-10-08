@@ -125,13 +125,14 @@ public class Process {
         File ogFile = latestFiles.get("ser");
 
         if(ogFile == null) {
-            return ProcessStep.SER_FILE_ABSENT;
+            log.info("no ser file has been found");
         }
         else {
             serializer.deserialiseFileToMaps(ogFile);
             customMetrics.getAppMiscGauges().get(CustomMetrics.MiscCustomMetric.STAGE).set(3);
-            return ProcessStep.CONTINUE;
         }
+
+        return ProcessStep.CONTINUE;
     }
 
     /**
