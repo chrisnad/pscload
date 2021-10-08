@@ -19,13 +19,13 @@ app "prosanteconnect/pscload" {
 
   # Build specifies how an application should be deployed.
   build {
-    use "pack" {
-      builder = "gcr.io/buildpacks/builder:v1"
+    use "docker" {
+      dockerfile = "${path.app}/${var.dockerfile_path}"
     }
 
     registry {
       use "docker" {
-        image = artifact.image
+        image = "${var.registry_path}/pscload"
         tag   = gitrefpretty()
         encoded_auth = filebase64("/secrets/dockerAuth.json")
       }
@@ -45,4 +45,14 @@ app "prosanteconnect/pscload" {
 variable "datacenter" {
   type    = string
   default = "dc1"
+}
+
+variable "dockerfile_path" {
+  type = string
+  default = "Dockerfile"
+}
+
+variable "registry_path" {
+  type = string
+  default = "registry.repo.proxy-dev-forge.asip.hst.fluxus.net/prosanteconnect"
 }

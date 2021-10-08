@@ -51,21 +51,19 @@ public class Scheduler {
 
             currentStep = process.downloadAndUnzip(extractDownloadUrl);
             if (currentStep != ProcessStep.CONTINUE) {
-                return currentStep;
-            }
-
-            currentStep = process.downloadAndUnzip(extractDownloadUrl);
-            if (currentStep != ProcessStep.CONTINUE) {
+                log.info ("download step : " + currentStep.message);
                 return currentStep;
             }
 
             currentStep = process.loadLatestFile();
             if (currentStep != ProcessStep.CONTINUE) {
+                log.info ("load txt step : " + currentStep.message);
                 return currentStep;
             }
 
             currentStep = process.deserializeFileToMaps();
             if (currentStep != ProcessStep.CONTINUE) {
+                log.info ("deserialize step : " + currentStep.message);
                 return currentStep;
             }
 
@@ -74,6 +72,7 @@ public class Scheduler {
             if (autoContinue) {
                 currentStep = process.uploadChanges();
                 if (currentStep != ProcessStep.CONTINUE) {
+                    log.info ("upload changes step : " + currentStep.message);
                     return currentStep;
                 }
                 currentStep = process.serializeMapsToFile();
