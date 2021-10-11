@@ -36,7 +36,7 @@ job "pscload" {
       config {
         image = "${artifact.image}:${artifact.tag}"
         volumes = [
-          "name=pscload-data,io_priority=high,size=3,repl=3:/workspace/src/main/files-repo"
+          "name=pscload-data,io_priority=high,size=3,repl=3:/app/files-repo"
         ]
         volume_driver = "pxd"
         ports = ["http"]
@@ -72,7 +72,7 @@ server.servlet.context-path=/pscload/v1
 api.base.url=http://{{ range service "psc-api-maj" }}{{ .Address }}:{{ .Port }}{{ end }}/api
 pscextract.base.url=http://{{ range service "pscextract" }}{{ .Address }}:{{ .Port }}{{ end }}/pscextract/v1
 queue.name=file.upload
-files.directory=/workspace/src/main/files-repo
+files.directory=/app/files-repo
 cert.path=/secrets/certificate.pem
 key.path=/secrets/key.pem
 ca.path=/secrets/cacerts.pem
