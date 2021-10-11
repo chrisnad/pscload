@@ -139,8 +139,10 @@ public class Process {
      * Compute diff.
      */
     public void computeDiff() {
+        log.info("starting diff");
         psDiff = pscRestApi.diffPsMaps(serializer.getPsMap(), loader.getPsMap());
         structureDiff = pscRestApi.diffStructureMaps(serializer.getStructureMap(), loader.getStructureMap());
+        log.info("diff complete");
 
         customMetrics.getAppMiscGauges().get(CustomMetrics.MiscCustomMetric.STAGE).set(4);
     }
