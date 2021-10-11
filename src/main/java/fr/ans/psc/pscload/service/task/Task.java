@@ -29,7 +29,7 @@ public abstract class Task {
         try {
             Response response = call.execute();
             String responseBody = Objects.requireNonNull(response.body()).string();
-            log.info("response body: {}", responseBody);
+            log.debug("response body: {}", responseBody);
             response.close();
         } catch (IOException e) {
             log.error("error: {}", e.getMessage());
