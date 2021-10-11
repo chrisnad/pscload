@@ -157,7 +157,7 @@ public class Process {
         }
         pscRestApi.uploadChanges(psDiff, structureDiff);
 
-        customMetrics.getAppMiscGauges().get(CustomMetrics.MiscCustomMetric.STAGE).set(0);
+        customMetrics.getAppMiscGauges().get(CustomMetrics.MiscCustomMetric.STAGE).set(6);
         return ProcessStep.CONTINUE;
     }
 
@@ -177,7 +177,7 @@ public class Process {
                     filesDirectory + "/" + latestExtractDate.concat(".ser"));
 
             Metrics.counter(CustomMetrics.SER_FILE_TAG, CustomMetrics.TIMESTAMP_TAG, latestExtractDate).increment();
-            customMetrics.getAppMiscGauges().get(CustomMetrics.MiscCustomMetric.STAGE).set(6);
+            customMetrics.getAppMiscGauges().get(CustomMetrics.MiscCustomMetric.STAGE).set(0);
             return ProcessStep.CONTINUE;
         }
 
