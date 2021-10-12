@@ -298,13 +298,13 @@ class ProcessController {
         ModelAndView mav = initializeMAV("Les changements du jour ont bien été chargés après reprise du process.");
         ProcessStep currentStep;
 
-        currentStep = process.serializeMapsToFile();
+        currentStep = process.uploadChanges();
         if (currentStep != ProcessStep.CONTINUE) {
             mav.addObject("step", currentStep);
             return mav;
         }
 
-        currentStep = process.uploadChanges();
+        currentStep = process.serializeMapsToFile();
         if (currentStep != ProcessStep.CONTINUE) {
             mav.addObject("step", currentStep);
             return mav;

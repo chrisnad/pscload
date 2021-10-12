@@ -125,21 +125,24 @@ public class Process {
         File ogFile = latestFiles.get("ser");
 
         if(ogFile == null) {
-            return ProcessStep.SER_FILE_ABSENT;
+            log.info("no ser file has been found");
         }
         else {
             serializer.deserialiseFileToMaps(ogFile);
             customMetrics.getAppMiscGauges().get(CustomMetrics.MiscCustomMetric.STAGE).set(3);
-            return ProcessStep.CONTINUE;
         }
+
+        return ProcessStep.CONTINUE;
     }
 
     /**
      * Compute diff.
      */
     public void computeDiff() {
+        log.info("starting diff");
         psDiff = pscRestApi.diffPsMaps(serializer.getPsMap(), loader.getPsMap());
         structureDiff = pscRestApi.diffStructureMaps(serializer.getStructureMap(), loader.getStructureMap());
+        log.info("diff complete");
 
         customMetrics.getAppMiscGauges().get(CustomMetrics.MiscCustomMetric.STAGE).set(4);
     }
@@ -156,7 +159,7 @@ public class Process {
         }
         pscRestApi.uploadChanges(psDiff, structureDiff);
 
-        customMetrics.getAppMiscGauges().get(CustomMetrics.MiscCustomMetric.STAGE).set(0);
+        customMetrics.getAppMiscGauges().get(CustomMetrics.MiscCustomMetric.STAGE).set(6);
         return ProcessStep.CONTINUE;
     }
 
@@ -176,7 +179,7 @@ public class Process {
                     filesDirectory + "/" + latestExtractDate.concat(".ser"));
 
             Metrics.counter(CustomMetrics.SER_FILE_TAG, CustomMetrics.TIMESTAMP_TAG, latestExtractDate).increment();
-            customMetrics.getAppMiscGauges().get(CustomMetrics.MiscCustomMetric.STAGE).set(6);
+            customMetrics.getAppMiscGauges().get(CustomMetrics.MiscCustomMetric.STAGE).set(0);
             return ProcessStep.CONTINUE;
         }
 
