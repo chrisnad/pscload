@@ -30,7 +30,6 @@ job "pscload" {
 
     task "pscload" {
       driver = "docker"
-      destination = "secrets"
       config {
         image = "${artifact.image}:${artifact.tag}"
         volumes = [
