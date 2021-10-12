@@ -30,9 +30,7 @@ job "pscload" {
 
     task "pscload" {
       driver = "docker"
-      env {
-        JAVA_TOOL_OPTIONS="-Xms10g -Xmx10g -XX:+UseG1GC -Dspring.config.location=/secrets/application.properties"
-      }
+      destination = "secrets"
       config {
         image = "${artifact.image}:${artifact.tag}"
         volumes = [
@@ -64,6 +62,7 @@ EOH
         env = true
         data = <<EOH
 PUBLIC_HOSTNAME={{ with secret "psc-ecosystem/pscload" }}{{ .Data.data.public_hostname }}{{ end }}
+JAVA_TOOL_OPTIONS="-Xms10g -Xmx10g -XX:+UseG1GC -Dspring.config.location=/secrets/application.properties -Dhttps.proxyHost=${proxy_host} -Dhttps.proxyPort=${proxy_port} -Dhttps.nonProxyHosts=${non_proxy_hosts}"
 EOH
       }
       template {
