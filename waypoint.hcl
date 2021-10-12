@@ -37,6 +37,9 @@ app "prosanteconnect/pscload" {
     use "nomad-jobspec" {
       jobspec = templatefile("${path.app}/pscload.nomad.tpl", {
         datacenter = var.datacenter
+        proxy_host = var.proxy_host
+        proxy_port = var.proxy_port
+        non_proxy_hosts = var.non_proxy_hosts
       })
     }
   }
