@@ -49,6 +49,9 @@ public class Scheduler {
             log.info("start batch");
             ProcessStep currentStep;
 
+            log.info("cleaning files repository before download");
+            FilesUtils.cleanup(filesDirectory);
+
             currentStep = process.downloadAndUnzip(extractDownloadUrl);
             if (currentStep != ProcessStep.CONTINUE) {
                 log.info ("download step : " + currentStep.message);
@@ -77,6 +80,7 @@ public class Scheduler {
                 }
                 currentStep = process.serializeMapsToFile();
                 if (currentStep != ProcessStep.CONTINUE) {
+                    log.info("serialize step : " + currentStep.message);
                     return currentStep;
                 }
                 currentStep = process.triggerExtract();
