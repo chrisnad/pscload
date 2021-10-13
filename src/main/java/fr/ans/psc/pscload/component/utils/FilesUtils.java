@@ -127,7 +127,6 @@ public class FilesUtils {
      * Deletes all except latest files.
      *
      * @param filesDirectory the files directory
-     * @throws IOException io exception
      */
     public static void cleanup(String filesDirectory) {
         log.info("Cleaning files repository, removing all but latest files");

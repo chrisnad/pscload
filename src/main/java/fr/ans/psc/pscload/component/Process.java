@@ -83,6 +83,7 @@ public class Process {
     public ProcessStepStatus downloadAndUnzip(String downloadUrl) throws GeneralSecurityException, IOException {
         log.info("cleaning files repository before download");
         FilesUtils.cleanup(filesDirectory);
+        ProcessStepStatus currentStepStatus;
 
         if (useCustomSSLContext) {
             SSLUtils.initSSLContext(cert, key, ca);
@@ -94,9 +95,11 @@ public class Process {
         if (zipFile != null && FilesUtils.unzip(zipFile, true)) {
             // stage 1: download and unzip successful
             customMetrics.getAppMiscGauges().get(CustomMetrics.MiscCustomMetric.STAGE).set(ProcessStep.DOWNLOADED.value);
-            return ProcessStepStatus.CONTINUE;
+            currentStepStatus = ProcessStepStatus.CONTINUE;
+        } else {
+            currentStepStatus = zipFile == null ? ProcessStepStatus.ZIP_FILE_ABSENT : ProcessStepStatus.TXT_FILE_ALREADY_EXISTING;
         }
-        return zipFile == null ? ProcessStepStatus.ZIP_FILE_ABSENT : ProcessStepStatus.TXT_FILE_ALREADY_EXISTING;
+        return currentStepStatus;
     }
 
     /**
@@ -105,7 +108,7 @@ public class Process {
      */
     public ProcessStepStatus loadLatestFile() throws ConcurrentProcessCallException {
         ProcessStepStatus status;
-        if (customMetrics.getAppMiscGauges().get(CustomMetrics.MiscCustomMetric.STAGE).get() == 5) {
+        if (customMetrics.getAppMiscGauges().get(CustomMetrics.MiscCustomMetric.STAGE).get() == ProcessStep.UPLOAD_CHANGES_STARTED.value) {
             throw new ConcurrentProcessCallException("Cancel loading latest file : upload changes process still running...");
         }
         Map<String, File> latestFiles = FilesUtils.getLatestExtAndSer(filesDirectory);
@@ -144,7 +147,7 @@ public class Process {
 
         if(ogFile == null) {
             log.info("no ser file has been found");
-            // if no ser file is present we should continue with an empty map (map is already initialized)
+            // if no ser file is present we should not try to desrialize it but continue with an empty map (map is already initialized)
             status = ProcessStepStatus.CONTINUE;
         }
         else {
@@ -152,7 +155,7 @@ public class Process {
                 serializer.deserialiseFileToMaps(ogFile);
                 customMetrics.getAppMiscGauges().get(CustomMetrics.MiscCustomMetric.STAGE).set(ProcessStep.PREVIOUS_MAP_LOADED.value);
                 status = ProcessStepStatus.CONTINUE;
-            } catch (IOException e) {
+            } catch (FileNotFoundException e) {
                 log.error("Error during deserialization", e);
                 status = ProcessStepStatus.INVALID_SER_FILE_PATH;
             }
@@ -200,9 +203,10 @@ public class Process {
      *
      */
     public ProcessStepStatus serializeMapsToFile() {
+        ProcessStepStatus status;
         // serialise latest extract
         if (latestExtract == null) {
-            return ProcessStepStatus.TXT_FILE_ABSENT;
+            status = ProcessStepStatus.TXT_FILE_ABSENT;
         }
         else {
             String latestExtractDate = FilesUtils.getDateStringFromFileName(latestExtract);
@@ -217,9 +221,9 @@ public class Process {
                 return ProcessStepStatus.INVALID_SER_FILE_PATH;
             }
 
-            return ProcessStepStatus.CONTINUE;
+            status = ProcessStepStatus.CONTINUE;
         }
-
+        return status;
     }
 
     public ProcessStepStatus triggerExtract()  {
