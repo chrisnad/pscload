@@ -143,6 +143,8 @@ class ProcessController {
     @PostMapping(value = "/process/download/test", produces = MediaType.APPLICATION_JSON_VALUE)
     @ResponseBody
     public String downloadTest(@RequestParam String fileName) throws IOException, GeneralSecurityException {
+        log.info("cleaning files repository before download");
+        FilesUtils.cleanup(filesDirectory);
         String downloadUrl = testDownloadUrl + fileName + ".zip";
         log.info("downloading from {}", downloadUrl);
         ProcessStep step = process.downloadAndUnzip(downloadUrl);
@@ -164,6 +166,8 @@ class ProcessController {
     @PostMapping(value = "/process/download", produces = MediaType.APPLICATION_JSON_VALUE)
     @ResponseBody
     public ModelAndView download() throws IOException, GeneralSecurityException {
+        log.info("cleaning files repository before download");
+        FilesUtils.cleanup(filesDirectory);
         log.info("downloading from {}", extractDownloadUrl);
         ModelAndView mav = initializeMAV("Téléchargement de l'archive RASS réussie.");
         ProcessStep step = process.downloadAndUnzip(extractDownloadUrl);
@@ -287,6 +291,7 @@ class ProcessController {
             mav.addObject("step", currentStep);
             return mav;
         }
+        FilesUtils.cleanup(filesDirectory);
         log.info("full upload finished");
         return mav;
     }
