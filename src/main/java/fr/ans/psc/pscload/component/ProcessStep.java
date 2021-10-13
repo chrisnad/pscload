@@ -1,14 +1,19 @@
 package fr.ans.psc.pscload.component;
 
 public enum ProcessStep {
-    CONTINUE("Process step OK"),
-    ZIP_FILE_ABSENT("No zip has been found"),
-    TXT_FILE_ALREADY_EXISTING("Unzipped file is not different from existing txt file"),
-    TXT_FILE_ABSENT("No txt file has been found"),
-    SER_FILE_ABSENT("No serialized file has been found"),
-    DIFF_NOT_COMPUTED("Diffs have not been computed yet");
+    IDLE(0),
+    DOWNLOADED (10),
+    CURRENT_MAP_LOADED(20),
+    PREVIOUS_MAP_LOADED(30),
+    COMPUTE_DIFF_STARTED(40),
+    COMPUTE_DIFF_FINISHED(50),
+    UPLOAD_CHANGES_STARTED(60),
+    UPLOAD_CHANGES_FINISHED(70),
+    CURRENT_MAP_SERIALIZED(80);
 
-    public String message;
+    public int value;
 
-    ProcessStep(String message) {this.message = message;}
+    ProcessStep (int value) {
+        this.value = value;
+    }
 }
