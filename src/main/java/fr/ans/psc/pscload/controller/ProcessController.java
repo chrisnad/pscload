@@ -183,11 +183,10 @@ class ProcessController {
      * Load string.
      *
      * @return the string
-     * @throws IOException the io exception
      */
     @PostMapping(value = "/process/load/new", produces = MediaType.APPLICATION_JSON_VALUE)
     @ResponseBody
-    public ModelAndView loadNew() throws IOException {
+    public ModelAndView loadNew() {
         ModelAndView mav = initializeMAV("Chargement des nouvelles maps PS et Structure réussie.");
         try {
             ProcessStepStatus step = process.loadLatestFile();
@@ -197,6 +196,7 @@ class ProcessController {
         } catch (ConcurrentProcessCallException e) {
             log.info(e.getMessage());
             ModelAndView errorMav = initializeMAV(e.getMessage());
+            errorMav.addObject("step", ProcessStepStatus.ABORT);
             errorMav.setStatus(HttpStatus.CONFLICT);
             return errorMav;
         }
@@ -206,10 +206,9 @@ class ProcessController {
      * Load current string.
      *
      * @return the string
-     * @throws IOException the io exception
      */
     @PostMapping(value = "/process/load/current", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ModelAndView loadCurrent() throws IOException {
+    public ModelAndView loadCurrent() {
         ModelAndView mav = initializeMAV("Chargement des maps courantes PS et Structure réussie.");
         try {
             ProcessStepStatus step = process.deserializeFileToMaps();
@@ -219,6 +218,7 @@ class ProcessController {
         } catch (ConcurrentProcessCallException e) {
             log.info(e.getMessage());
             ModelAndView errorMav = initializeMAV(e.getMessage());
+            errorMav.addObject("step", ProcessStepStatus.ABORT);
             errorMav.setStatus(HttpStatus.CONFLICT);
             return errorMav;
         }
@@ -228,10 +228,9 @@ class ProcessController {
      * Serialize ModelAndView.
      *
      * @return the ModelAndView
-     * @throws IOException the io exception
      */
     @PostMapping(value = "/process/serialize", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ModelAndView serialize() throws IOException {
+    public ModelAndView serialize() {
         ModelAndView mav = initializeMAV("Sérialisation des maps PS et Structure réussie.");
         ProcessStepStatus step = process.serializeMapsToFile();
         mav.addObject("step", step);
@@ -257,6 +256,7 @@ class ProcessController {
         } catch (ConcurrentProcessCallException e) {
             log.info(e.getMessage());
             ModelAndView errorMav = initializeMAV(e.getMessage());
+            errorMav.addObject("step", ProcessStepStatus.ABORT);
             errorMav.setStatus(HttpStatus.CONFLICT);
             return errorMav;
         }
@@ -268,7 +268,7 @@ class ProcessController {
      * @return ModelAndView
      */
     @PostMapping(value = "/process/upload/diff", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ModelAndView uploadDiff() throws IOException {
+    public ModelAndView uploadDiff() {
         log.info("uploading changes");
         ModelAndView mav = initializeMAV("Les changements du jour ont bien été chargés.");
 
@@ -285,6 +285,7 @@ class ProcessController {
         } catch (ConcurrentProcessCallException e) {
             log.info(e.getMessage());
             ModelAndView errorMav = initializeMAV(e.getMessage());
+            errorMav.addObject("step", ProcessStepStatus.ABORT);
             errorMav.setStatus(HttpStatus.CONFLICT);
             return errorMav;
         }
@@ -303,7 +304,7 @@ class ProcessController {
     }
 
     @PostMapping(value = "/process/continue", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ModelAndView continueProcess() throws IOException {
+    public ModelAndView continueProcess() {
         log.info("resuming process");
         ModelAndView mav;
         ProcessStepStatus currentStepStatus;
