@@ -41,8 +41,8 @@ public class PscRestApi {
     @Value("${api.base.url}")
     private String apiBaseUrl;
 
-    @Value("${deactivation.excluded.profession.codes}")
-    private String excludedProfessionCodesString;
+    @Value("${deactivation.excluded.profession.codes:}")
+    private String[] excludedProfessions;
 
     /**
      * Diff PS maps.
@@ -114,6 +114,14 @@ public class PscRestApi {
      */
     public void uploadChanges(MapDifference<String, Professionnel> psDiff,
                               MapDifference<String, Structure> structureDiff) {
+        int psChangesCount = psDiff.entriesOnlyOnLeft().size()
+                + psDiff.entriesOnlyOnRight().size()
+                + psDiff.entriesDiffering().size();
+        int structureChangesCount = structureDiff.entriesOnlyOnLeft().size()
+                + structureDiff.entriesOnlyOnRight().size()
+                + structureDiff.entriesDiffering().size();
+        log.info("Ps changes count : " + psChangesCount);
+        log.info("Structure changes count : " + structureChangesCount);
         injectPsDiffTasks(psDiff);
         injectStructuresDiffTasks(structureDiff);
     }
@@ -126,12 +134,10 @@ public class PscRestApi {
         diff.entriesOnlyOnLeft().values().parallelStream().forEach(ps -> {
                     List<ExerciceProfessionnel> psExPros = ps.getProfessions();
                     AtomicBoolean deletable = new AtomicBoolean(true);
-                    String[] excludedProfessions = excludedProfessionCodesString != null ?
-                            excludedProfessionCodesString.split(",") : null;
 
                     psExPros.forEach(exerciceProfessionnel -> {
                         if (excludedProfessions != null && Arrays.stream(excludedProfessions)
-                                .anyMatch(profession -> profession.equals(exerciceProfessionnel.getCode())))
+                                .anyMatch(profession -> exerciceProfessionnel.getCode().equals(profession)))
                         { deletable.set(false); }
                     });
 

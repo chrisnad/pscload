@@ -3,6 +3,7 @@ package fr.ans.psc.pscload.component;
 import com.google.common.collect.MapDifference;
 import fr.ans.psc.pscload.component.utils.FilesUtils;
 import fr.ans.psc.pscload.component.utils.SSLUtils;
+import fr.ans.psc.pscload.exceptions.ConcurrentProcessCallException;
 import fr.ans.psc.pscload.mapper.Loader;
 import fr.ans.psc.pscload.mapper.Serializer;
 import fr.ans.psc.pscload.metrics.CustomMetrics;
@@ -79,7 +80,11 @@ public class Process {
      * @throws GeneralSecurityException the general security exception
      * @throws IOException              the io exception
      */
-    public ProcessStep downloadAndUnzip(String downloadUrl) throws GeneralSecurityException, IOException {
+    public ProcessStepStatus downloadAndUnzip(String downloadUrl) throws GeneralSecurityException, IOException {
+        log.info("cleaning files repository before download");
+        FilesUtils.cleanup(filesDirectory);
+        ProcessStepStatus currentStepStatus;
+
         if (useCustomSSLContext) {
             SSLUtils.initSSLContext(cert, key, ca);
         }
@@ -89,103 +94,140 @@ public class Process {
         // unzipping only if txt file is newer than what we already have
         if (zipFile != null && FilesUtils.unzip(zipFile, true)) {
             // stage 1: download and unzip successful
-            customMetrics.getAppMiscGauges().get(CustomMetrics.MiscCustomMetric.STAGE).set(1);
-            return ProcessStep.CONTINUE;
+            customMetrics.getAppMiscGauges().get(CustomMetrics.MiscCustomMetric.STAGE).set(ProcessStep.DOWNLOADED.value);
+            currentStepStatus = ProcessStepStatus.CONTINUE;
+        } else {
+            currentStepStatus = zipFile == null ? ProcessStepStatus.ZIP_FILE_ABSENT : ProcessStepStatus.TXT_FILE_ALREADY_EXISTING;
         }
-        return zipFile == null ? ProcessStep.ZIP_FILE_ABSENT : ProcessStep.TXT_FILE_ALREADY_EXISTING;
+        return currentStepStatus;
     }
 
     /**
      * Load latest file.
      *
-     * @throws IOException the io exception
      */
-    public ProcessStep loadLatestFile() throws IOException {
+    public ProcessStepStatus loadLatestFile() throws ConcurrentProcessCallException {
+        ProcessStepStatus status;
+        if (customMetrics.getAppMiscGauges().get(CustomMetrics.MiscCustomMetric.STAGE).get() == ProcessStep.UPLOAD_CHANGES_STARTED.value) {
+            throw new ConcurrentProcessCallException("Cancel loading latest file : upload changes process still running...");
+        }
         Map<String, File> latestFiles = FilesUtils.getLatestExtAndSer(filesDirectory);
 
         latestExtract = latestFiles.get("txt");
-        if (latestExtract == null) {
-            return ProcessStep.TXT_FILE_ABSENT;
-        }
-        log.info("loading file: {}", latestExtract.getName());
+        if (latestExtract != null) {
+            log.info("loading file: {}", latestExtract.getName());
 
-        loader.loadMapsFromFile(latestExtract);
-        customMetrics.getAppMiscGauges().get(CustomMetrics.MiscCustomMetric.STAGE).set(2);
-        return ProcessStep.CONTINUE;
+            try {
+                loader.loadMapsFromFile(latestExtract);
+                customMetrics.getAppMiscGauges().get(CustomMetrics.MiscCustomMetric.STAGE).set(ProcessStep.CURRENT_MAP_LOADED.value);
+                status = ProcessStepStatus.CONTINUE;
+
+            } catch (IOException e) {
+                log.error("error during file reading", e);
+                status = ProcessStepStatus.FILE_READING_ERROR;
+            }
+        } else {
+            status = ProcessStepStatus.TXT_FILE_ABSENT;
+        }
+        return status;
     }
 
     /**
      * Deserialize file to maps.
      *
-     * @throws IOException the io exception
      */
-    public ProcessStep deserializeFileToMaps() throws IOException {
+    public ProcessStepStatus deserializeFileToMaps() throws ConcurrentProcessCallException {
+        ProcessStepStatus status;
+        if (customMetrics.getAppMiscGauges().get(CustomMetrics.MiscCustomMetric.STAGE).get() == ProcessStep.UPLOAD_CHANGES_STARTED.value) {
+            throw new ConcurrentProcessCallException("Cancel deserializing file : upload changes process still running...");
+        }
         Map<String, File> latestFiles = FilesUtils.getLatestExtAndSer(filesDirectory);
 
         File ogFile = latestFiles.get("ser");
 
         if(ogFile == null) {
             log.info("no ser file has been found");
+            // if no ser file is present we should not try to desrialize it but continue with an empty map (map is already initialized)
+            status = ProcessStepStatus.CONTINUE;
         }
         else {
-            serializer.deserialiseFileToMaps(ogFile);
-            customMetrics.getAppMiscGauges().get(CustomMetrics.MiscCustomMetric.STAGE).set(3);
+            try {
+                serializer.deserialiseFileToMaps(ogFile);
+                customMetrics.getAppMiscGauges().get(CustomMetrics.MiscCustomMetric.STAGE).set(ProcessStep.PREVIOUS_MAP_LOADED.value);
+                status = ProcessStepStatus.CONTINUE;
+            } catch (FileNotFoundException e) {
+                log.error("Error during deserialization", e);
+                status = ProcessStepStatus.INVALID_SER_FILE_PATH;
+            }
         }
-
-        return ProcessStep.CONTINUE;
+        return status;
     }
 
     /**
      * Compute diff.
      */
-    public void computeDiff() {
+    public void computeDiff() throws ConcurrentProcessCallException {
+
+        if (customMetrics.getAppMiscGauges().get(CustomMetrics.MiscCustomMetric.STAGE).get() == ProcessStep.UPLOAD_CHANGES_STARTED.value
+        || customMetrics.getAppMiscGauges().get(CustomMetrics.MiscCustomMetric.STAGE).get() == ProcessStep.COMPUTE_DIFF_STARTED.value) {
+            throw new ConcurrentProcessCallException("Cancel computing diff : upload changes process still running...");
+        }
         log.info("starting diff");
         psDiff = pscRestApi.diffPsMaps(serializer.getPsMap(), loader.getPsMap());
         structureDiff = pscRestApi.diffStructureMaps(serializer.getStructureMap(), loader.getStructureMap());
-        log.info("diff complete");
 
-        customMetrics.getAppMiscGauges().get(CustomMetrics.MiscCustomMetric.STAGE).set(4);
+        customMetrics.getAppMiscGauges().get(CustomMetrics.MiscCustomMetric.STAGE).set(ProcessStep.COMPUTE_DIFF_FINISHED.value);
     }
 
     /**
      * Load changes.
      *
      */
-    public ProcessStep uploadChanges() {
-        customMetrics.getAppMiscGauges().get(CustomMetrics.MiscCustomMetric.STAGE).set(5);
+    public ProcessStepStatus uploadChanges() throws ConcurrentProcessCallException {
+        if (customMetrics.getAppMiscGauges().get(CustomMetrics.MiscCustomMetric.STAGE).get() == ProcessStep.UPLOAD_CHANGES_STARTED.value) {
+            throw new ConcurrentProcessCallException("Cancel new upload changes : previous upload changes process still running...");
+        }
+        customMetrics.getAppMiscGauges().get(CustomMetrics.MiscCustomMetric.STAGE).set(ProcessStep.UPLOAD_CHANGES_STARTED.value);
 
         if (psDiff == null || structureDiff == null) {
-           return ProcessStep.DIFF_NOT_COMPUTED;
+           return ProcessStepStatus.DIFF_NOT_COMPUTED;
         }
         pscRestApi.uploadChanges(psDiff, structureDiff);
 
-        customMetrics.getAppMiscGauges().get(CustomMetrics.MiscCustomMetric.STAGE).set(6);
-        return ProcessStep.CONTINUE;
+        customMetrics.getAppMiscGauges().get(CustomMetrics.MiscCustomMetric.STAGE).set(ProcessStep.UPLOAD_CHANGES_FINISHED.value);
+        return ProcessStepStatus.CONTINUE;
     }
 
     /**
      * Serialize maps to file.
      *
-     * @throws FileNotFoundException the file not found exception
      */
-    public ProcessStep serializeMapsToFile() throws FileNotFoundException {
+    public ProcessStepStatus serializeMapsToFile() {
+        ProcessStepStatus status;
         // serialise latest extract
         if (latestExtract == null) {
-            return ProcessStep.TXT_FILE_ABSENT;
+            status = ProcessStepStatus.TXT_FILE_ABSENT;
         }
         else {
             String latestExtractDate = FilesUtils.getDateStringFromFileName(latestExtract);
-            serializer.serialiseMapsToFile(loader.getPsMap(), loader.getStructureMap(),
-                    filesDirectory + "/" + latestExtractDate.concat(".ser"));
+            try {
+                serializer.serialiseMapsToFile(loader.getPsMap(), loader.getStructureMap(),
+                        filesDirectory + "/" + latestExtractDate.concat(".ser"));
 
-            Metrics.counter(CustomMetrics.SER_FILE_TAG, CustomMetrics.TIMESTAMP_TAG, latestExtractDate).increment();
-            customMetrics.getAppMiscGauges().get(CustomMetrics.MiscCustomMetric.STAGE).set(0);
-            return ProcessStep.CONTINUE;
+                Metrics.counter(CustomMetrics.SER_FILE_TAG, CustomMetrics.TIMESTAMP_TAG, latestExtractDate).increment();
+                customMetrics.getAppMiscGauges().get(CustomMetrics.MiscCustomMetric.STAGE).set(ProcessStep.IDLE.value);
+            } catch (FileNotFoundException e) {
+                log.error("Invalid path", e);
+                return ProcessStepStatus.INVALID_SER_FILE_PATH;
+            }
+
+            status = ProcessStepStatus.CONTINUE;
         }
-
+        return status;
     }
 
-    public ProcessStep triggerExtract() throws IOException {
+    public ProcessStepStatus triggerExtract()  {
+        ProcessStepStatus processStepStatus;
         log.info("prepare trigger RASS extract");
         OkHttpClient client = new OkHttpClient();
         Request.Builder requestBuilder = new Request.Builder();
@@ -194,13 +236,18 @@ public class Process {
                 .post(body).build();
 
         Call call = client.newCall(request);
-        Response response = call.execute();
-        log.info("extract response", response);
-        String responseBody = Objects.requireNonNull(response.body()).string();
-        log.info("response body: {}", responseBody);
-        response.close();
-
-        return ProcessStep.CONTINUE;
+        try {
+            Response response = call.execute();
+            log.info("extract response : " + response);
+            String responseBody = Objects.requireNonNull(response.body()).string();
+            log.info("response body: {}", responseBody);
+            response.close();
+            processStepStatus = ProcessStepStatus.CONTINUE;
+        } catch (IOException e) {
+            log.error("Error during pscextract endpoint call", e);
+            processStepStatus = ProcessStepStatus.PSCEXTRACT_ENDPOINT_FAILURE;
+        }
+        return processStepStatus;
     }
 
     /**
@@ -224,13 +271,55 @@ public class Process {
      *
      * @throws IOException the io exception
      */
-    public ProcessStep loadToggleMaps(File toggleFile) throws IOException {
+    public ProcessStepStatus loadToggleMaps(File toggleFile) throws IOException {
         loader.loadPSRefMapFromFile(toggleFile);
-        return ProcessStep.CONTINUE;
+        return ProcessStepStatus.CONTINUE;
     }
 
     public void uploadPsRefsAfterToggle() {
         pscRestApi.uploadPsRefs(loader.getPsRefCreateMap(), loader.getPsRefUpdateMap());
+    }
+
+    public ProcessStepStatus runFirst() {
+        ProcessStepStatus currentStepStatus;
+
+        try {
+            currentStepStatus = loadLatestFile();
+
+            if (currentStepStatus == ProcessStepStatus.CONTINUE) {
+                currentStepStatus = deserializeFileToMaps();
+
+                computeDiff();
+            }
+        } catch (ConcurrentProcessCallException e) {
+            log.warn(e.getMessage(), e);
+            currentStepStatus = ProcessStepStatus.ABORT;
+        }
+
+        return currentStepStatus;
+    }
+
+    public ProcessStepStatus runContinue() {
+        ProcessStepStatus currentStepStatus;
+
+        try {
+            currentStepStatus = uploadChanges();
+
+            if (currentStepStatus == ProcessStepStatus.CONTINUE) {
+                currentStepStatus = serializeMapsToFile();
+
+                currentStepStatus = triggerExtract();
+
+                if (currentStepStatus == ProcessStepStatus.CONTINUE) {
+                    FilesUtils.cleanup(filesDirectory);
+                    log.info("full upload finished");
+                }
+            }
+        } catch (ConcurrentProcessCallException e) {
+            log.warn(e.getMessage(), e);
+            currentStepStatus = ProcessStepStatus.ABORT;
+        }
+        return currentStepStatus;
     }
 
 }
