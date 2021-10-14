@@ -148,6 +148,7 @@ public class Process {
         if(ogFile == null) {
             log.info("no ser file has been found");
             // if no ser file is present we should not try to desrialize it but continue with an empty map (map is already initialized)
+            customMetrics.getAppMiscGauges().get(CustomMetrics.MiscCustomMetric.STAGE).set(ProcessStep.PREVIOUS_MAP_LOADED.value);
             status = ProcessStepStatus.CONTINUE;
         }
         else {
