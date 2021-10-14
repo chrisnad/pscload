@@ -174,6 +174,7 @@ public class Process {
             throw new ConcurrentProcessCallException("Cancel computing diff : upload changes process still running...");
         }
         log.info("starting diff");
+        customMetrics.getAppMiscGauges().get(CustomMetrics.MiscCustomMetric.STAGE).set(ProcessStep.COMPUTE_DIFF_STARTED.value);
         psDiff = pscRestApi.diffPsMaps(serializer.getPsMap(), loader.getPsMap());
         structureDiff = pscRestApi.diffStructureMaps(serializer.getStructureMap(), loader.getStructureMap());
 
@@ -188,11 +189,10 @@ public class Process {
         if (customMetrics.getAppMiscGauges().get(CustomMetrics.MiscCustomMetric.STAGE).get() == ProcessStep.UPLOAD_CHANGES_STARTED.value) {
             throw new ConcurrentProcessCallException("Cancel new upload changes : previous upload changes process still running...");
         }
-        customMetrics.getAppMiscGauges().get(CustomMetrics.MiscCustomMetric.STAGE).set(ProcessStep.UPLOAD_CHANGES_STARTED.value);
-
         if (psDiff == null || structureDiff == null) {
            return ProcessStepStatus.DIFF_NOT_COMPUTED;
         }
+        customMetrics.getAppMiscGauges().get(CustomMetrics.MiscCustomMetric.STAGE).set(ProcessStep.UPLOAD_CHANGES_STARTED.value);
         pscRestApi.uploadChanges(psDiff, structureDiff);
 
         customMetrics.getAppMiscGauges().get(CustomMetrics.MiscCustomMetric.STAGE).set(ProcessStep.UPLOAD_CHANGES_FINISHED.value);
