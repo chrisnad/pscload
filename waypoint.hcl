@@ -40,7 +40,7 @@ app "prosanteconnect/pscload" {
         proxy_host = var.proxy_host
         proxy_port = var.proxy_port
         non_proxy_hosts = var.non_proxy_hosts
-        node_class = var.node_class
+//        node_class = var.node_class
       })
     }
   }
@@ -76,7 +76,7 @@ variable "non_proxy_hosts" {
   default = "10.0.0.0/8"
 }
 
-variable "node_class" {
-  type = string
-  default = "data"
-}
+//variable "node_class" {
+//  type = string
+//  default = "data"
+//}
