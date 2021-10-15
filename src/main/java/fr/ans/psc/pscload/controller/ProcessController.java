@@ -318,6 +318,7 @@ class ProcessController {
             mav.setStatus(HttpStatus.CONFLICT);
         }
         mav.addObject("step", currentStepStatus);
+        log.info("continue process finished with status : " + currentStepStatus.name());
         return mav;
     }
 
