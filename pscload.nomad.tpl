@@ -28,11 +28,11 @@ job "pscload" {
       }
     }
 
-    # install only on "data" nodes
-    constraint {
-      attribute = "${node_class}"
-      value     = "data"
-    }
+//    # install only on "data" nodes
+//    constraint {
+//      attribute = "${node_class}"
+//      value     = "data"
+//    }
 
     task "pscload" {
       driver = "docker"
