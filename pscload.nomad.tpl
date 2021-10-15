@@ -30,7 +30,7 @@ job "pscload" {
 
     # install only on "data" nodes
     constraint {
-      attribute = "${node.class}"
+      attribute = "${node_class}"
       value     = "data"
     }
 
