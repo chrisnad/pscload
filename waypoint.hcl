@@ -76,7 +76,7 @@ variable "non_proxy_hosts" {
   default = "10.0.0.0/8"
 }
 
-variable "node.class" {
+variable "node_class" {
   type = string
   default = "data"
 }
