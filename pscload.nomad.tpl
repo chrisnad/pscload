@@ -15,6 +15,11 @@ job "pscload" {
       mode = "fail"
     }
 
+    constraint {
+      attribute = "$\u007Bnode.class\u007D"
+      value     = "data"
+    }
+
     update {
       max_parallel = 1
       min_healthy_time = "30s"
