@@ -33,9 +33,8 @@ public abstract class Task {
             Response response = call.execute();
             String responseBody = Objects.requireNonNull(response.body()).string();
             ApiResponse apiResponse = JsonFormatter.apiResponseFromJson(responseBody);
-            log.info("api response : " + apiResponse.getCode());
-            if (apiResponse.getCode() > 195) {
-                log.info("test int");
+            if (apiResponse.getCode() == 500) {
+                log.info("mongodb internal server error");
             }
             log.info("response body: {}", responseBody);
             response.close();
