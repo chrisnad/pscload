@@ -127,9 +127,8 @@ public class FilesUtils {
      * Deletes all except latest files.
      *
      * @param filesDirectory the files directory
-     * @throws IOException io exception
      */
-    public static void cleanup(String filesDirectory) throws IOException {
+    public static void cleanup(String filesDirectory) {
         log.info("Cleaning files repository, removing all but latest files");
         Map<String, List<File>> filesMap = zipsTextsNSers(new File(filesDirectory).listFiles());
 
@@ -169,9 +168,8 @@ public class FilesUtils {
      *
      * @param filesDirectory the files directory
      * @return the latest ext and ser files as map, null value if file doesnt exist
-     * @throws IOException the io exception
      */
-    public static Map<String, File> getLatestExtAndSer(String filesDirectory) throws IOException {
+    public static Map<String, File> getLatestExtAndSer(String filesDirectory) {
         Map<String, List<File>> filesMap = zipsTextsNSers(new File(filesDirectory).listFiles());
 
         List<File> listOfExtracts = filesMap.get("txts");
@@ -204,21 +202,19 @@ public class FilesUtils {
      *
      * @param listOfFiles the list of files
      * @return the map
-     * @throws IOException io exception
      */
-    private static Map<String, List<File>> zipsTextsNSers(File[] listOfFiles) throws IOException {
+    private static Map<String, List<File>> zipsTextsNSers(File[] listOfFiles) {
         Map<String, List<File>> filesMap = new HashMap<>();
         filesMap.put("zips", new ArrayList<>());
         filesMap.put("txts", new ArrayList<>());
         filesMap.put("sers", new ArrayList<>());
 
         for (File file : listOfFiles != null ? listOfFiles : new File[0]) {
-            String type = Files.probeContentType(file.toPath());
             if (file.getName().endsWith(".ser")) {
                 filesMap.get("sers").add(file);
-            } else if (type != null && type.contains("zip")) {
+            } else if (file.getName().endsWith(".zip")) {
                 filesMap.get("zips").add(file);
-            } else if (type != null && type.contains("text")) {
+            } else if (file.getName().endsWith(".txt")) {
                 filesMap.get("txts").add(file);
             }
         }

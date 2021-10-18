@@ -5,6 +5,7 @@ import fr.ans.psc.pscload.model.*;
 import fr.ans.psc.pscload.model.response.PsListResponse;
 import fr.ans.psc.pscload.model.response.PsRefResponse;
 import fr.ans.psc.pscload.model.response.PsResponse;
+import fr.ans.psc.pscload.service.task.Task;
 import org.springframework.stereotype.Component;
 
 import java.lang.reflect.Type;
@@ -96,6 +97,10 @@ public class JsonFormatter {
     public PsRef[] psRefsFromJson(String json) {
         PsRefResponse response = gson.fromJson(json, PsRefResponse.class);
         return response.getPsRefs();
+    }
+
+    public Task.ApiResponse apiResponseFromJson(String json) {
+        return gson.fromJson(json, Task.ApiResponse.class);
     }
 
     public PsListResponse psListFromJson(String json) {

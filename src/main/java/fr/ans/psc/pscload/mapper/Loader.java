@@ -98,9 +98,15 @@ public class Loader {
 
         // get file charset to secure data encoding
         InputStream is = new FileInputStream(file);
-        Charset detectedCharset = Charset.forName(new TikaEncodingDetector().guessEncoding(is));
+        try {
+            Charset detectedCharset = Charset.forName(new TikaEncodingDetector().guessEncoding(is));
+            parser.parse(new BufferedReader(new FileReader(file, detectedCharset)));
+        } catch (IOException e) {
+            throw new IOException("Encoding detection failure", e);
+        }
 
-        parser.parse(new BufferedReader(new FileReader(file, detectedCharset)));
+
+
         log.info("loading complete!");
 
         customMetrics.getPsSizeGauges().get(CustomMetrics.PsCustomMetric.PS_ANY_UPLOAD_SIZE).set(psMap.size());

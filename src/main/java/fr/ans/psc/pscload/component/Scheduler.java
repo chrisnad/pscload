@@ -1,13 +1,11 @@
 package fr.ans.psc.pscload.component;
 
 import fr.ans.psc.pscload.component.utils.FilesUtils;
-import org.jetbrains.annotations.NotNull;
+import fr.ans.psc.pscload.exceptions.ConcurrentProcessCallException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.context.event.ApplicationReadyEvent;
-import org.springframework.context.ApplicationListener;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
@@ -44,55 +42,20 @@ public class Scheduler {
      * Download and parse.
      */
     @Scheduled(cron = "${schedule.cron.expression}", zone = "${schedule.cron.timeZone}")
-    public ProcessStep run() throws GeneralSecurityException, IOException {
+    public ProcessStepStatus run() throws GeneralSecurityException, IOException {
+        ProcessStepStatus currentStep = ProcessStepStatus.INIT_STEP;
         if (enabled) {
             log.info("start batch");
-            ProcessStep currentStep;
-
-            log.info("cleaning files repository before download");
-            FilesUtils.cleanup(filesDirectory);
 
             currentStep = process.downloadAndUnzip(extractDownloadUrl);
-            if (currentStep != ProcessStep.CONTINUE) {
-                log.info ("download step : " + currentStep.message);
-                return currentStep;
-            }
+            if (currentStep == ProcessStepStatus.CONTINUE) {
+                currentStep = process.runFirst();
 
-            currentStep = process.loadLatestFile();
-            if (currentStep != ProcessStep.CONTINUE) {
-                log.info ("load txt step : " + currentStep.message);
-                return currentStep;
-            }
-
-            currentStep = process.deserializeFileToMaps();
-            if (currentStep != ProcessStep.CONTINUE) {
-                log.info ("deserialize step : " + currentStep.message);
-                return currentStep;
-            }
-
-            process.computeDiff();
-
-            if (autoContinue) {
-                currentStep = process.uploadChanges();
-                if (currentStep != ProcessStep.CONTINUE) {
-                    log.info ("upload changes step : " + currentStep.message);
-                    return currentStep;
+                if (autoContinue && currentStep == ProcessStepStatus.CONTINUE) {
+                    currentStep = process.runContinue();
                 }
-                currentStep = process.serializeMapsToFile();
-                if (currentStep != ProcessStep.CONTINUE) {
-                    log.info("serialize step : " + currentStep.message);
-                    return currentStep;
-                }
-                currentStep = process.triggerExtract();
-                if (currentStep != ProcessStep.CONTINUE) {
-                    return currentStep;
-                }
-
-                FilesUtils.cleanup(filesDirectory);
             }
-
-            return currentStep;
         }
-        return null;
+        return currentStep;
     }
 }

@@ -24,8 +24,8 @@
         <div class="banner">
             <div class="message-block" th:switch="${step.name()}">
                 <div>
-                    <span th:case="'continue'" class="font-medium">L'opération s'est déroulée correctement. </span>
-                    <span th:text="${message}" class="font-small"></span>
+                    <span th:case="'CONTINUE'" class="font-medium">L'opération s'est déroulée correctement. </span>
+                    <span th:case="'CONTINUE'" th:text="${message}" class="font-small"></span>
                 </div>
                 <div th:case="'ZIP_FILE_ABSENT'">
                     <span class="font-medium">

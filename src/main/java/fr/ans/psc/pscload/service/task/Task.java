@@ -1,5 +1,6 @@
 package fr.ans.psc.pscload.service.task;
 
+import fr.ans.psc.pscload.component.JsonFormatter;
 import okhttp3.Call;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
@@ -19,6 +20,8 @@ public abstract class Task {
 
     private final OkHttpClient client = new OkHttpClient();
 
+    JsonFormatter JsonFormatter = new JsonFormatter();
+
     // We use this header in order to close the connection after each request
     final Request.Builder requestBuilder = new Request.Builder().header("Connection", "close");
 
@@ -29,10 +32,63 @@ public abstract class Task {
         try {
             Response response = call.execute();
             String responseBody = Objects.requireNonNull(response.body()).string();
-            log.debug("response body: {}", responseBody);
+            ApiResponse apiResponse = JsonFormatter.apiResponseFromJson(responseBody);
+            if (apiResponse.getCode() == 500) {
+                log.info("mongodb internal server error");
+            }
+            log.info("response body: {}", responseBody);
             response.close();
         } catch (IOException e) {
             log.error("error: {}", e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    public static class ApiResponse {
+        private String status;
+        private String method;
+        private String uri;
+        private String message;
+        private int code;
+
+        public String getStatus() {
+            return status;
+        }
+
+        public void setStatus(String status) {
+            this.status = status;
+        }
+
+        public String getMethod() {
+            return method;
+        }
+
+        public void setMethod(String method) {
+            this.method = method;
+        }
+
+        public String getUri() {
+            return uri;
+        }
+
+        public void setUri(String uri) {
+            this.uri = uri;
+        }
+
+        public String getMessage() {
+            return message;
+        }
+
+        public void setMessage(String message) {
+            this.message = message;
+        }
+
+        public int getCode() {
+            return code;
+        }
+
+        public void setCode(int code) {
+            this.code = code;
         }
     }
 
