@@ -40,7 +40,7 @@ public abstract class Task {
     }
 
     private void handleApiResponseLogging(ApiResponse apiResponse, String stringifiedBody) {
-        if (apiResponse != null) {
+        if (apiResponse != null && apiResponse.getCode() != null) {
             switch (apiResponse.getCode()) {
                 case 200:
                     log.debug("mongodb operation OK : " + stringifiedBody);
