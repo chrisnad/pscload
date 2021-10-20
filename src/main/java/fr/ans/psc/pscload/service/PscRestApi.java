@@ -8,6 +8,7 @@ import fr.ans.psc.pscload.metrics.CustomMetrics;
 import fr.ans.psc.pscload.model.*;
 import fr.ans.psc.pscload.service.task.Create;
 import fr.ans.psc.pscload.service.task.Delete;
+import fr.ans.psc.pscload.service.task.Task;
 import fr.ans.psc.pscload.service.task.Update;
 import okhttp3.Call;
 import okhttp3.OkHttpClient;
@@ -257,7 +258,9 @@ public class PscRestApi {
             Call call = client.newCall(request);
             Response response = call.execute();
             String responseBody = Objects.requireNonNull(response.body()).string();
-            log.info("response body: {}", responseBody);
+            Task.ApiResponse apiResponse = jsonFormatter.apiResponseFromJson(responseBody);
+            handleApiResponseLogging(apiResponse, responseBody);
+
             storedPsRef = jsonFormatter.psRefFromJson(responseBody);
             response.close();
         } catch (IOException e) {
@@ -393,6 +396,24 @@ public class PscRestApi {
         return apiBaseUrl + "/psref";
     }
 
-    ;
+    private void handleApiResponseLogging(Task.ApiResponse apiResponse, String stringifiedBody) {
+        switch (apiResponse.getCode()) {
+            case 200:
+                log.debug("PsRef reached : " + stringifiedBody);
+                break;
+            case 500:
+                log.error("mongodb internal server error : " + stringifiedBody);
+                break;
+            case 404:
+                log.debug("PsRef not found" + stringifiedBody);
+                break;
+            case 409:
+                log.debug("PsRef already exists : " + stringifiedBody);
+                break;
+            default:
+                log.error("PsRef unknown api response type" + stringifiedBody);
+                break;
+        }
+    }
 
 }
