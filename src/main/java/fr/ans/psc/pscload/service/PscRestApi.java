@@ -262,6 +262,7 @@ public class PscRestApi {
             handleApiResponseLogging(apiResponse, responseBody);
 
             storedPsRef = jsonFormatter.psRefFromJson(responseBody);
+            log.info("idRef : " + storedPsRef.getNationalIdRef() + " idNat : " + storedPsRef.getNationalId());
             response.close();
         } catch (IOException e) {
             log.error("Error while querying stored PsRef : " + psref.getNationalIdRef(), e);
