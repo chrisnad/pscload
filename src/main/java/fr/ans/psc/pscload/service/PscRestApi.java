@@ -263,7 +263,12 @@ public class PscRestApi {
             log.info("body : " + responseBody);
 
             storedPsRef = jsonFormatter.psRefFromJson(responseBody);
-            log.info("idRef : " + storedPsRef.getNationalIdRef() + " idNat : " + storedPsRef.getNationalId());
+            if (storedPsRef != null) {
+                log.info("idRef : " + storedPsRef.getNationalIdRef() + " idNat : " + storedPsRef.getNationalId());
+            } else {
+                log.info("not found");
+            }
+
             response.close();
         } catch (IOException e) {
             log.error("Error while querying stored PsRef : " + psref.getNationalIdRef(), e);
