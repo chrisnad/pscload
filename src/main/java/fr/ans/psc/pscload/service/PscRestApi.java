@@ -260,6 +260,7 @@ public class PscRestApi {
             String responseBody = Objects.requireNonNull(response.body()).string();
             Task.ApiResponse apiResponse = jsonFormatter.apiResponseFromJson(responseBody);
             handleApiResponseLogging(apiResponse, responseBody);
+            log.info("body : " + responseBody);
 
             storedPsRef = jsonFormatter.psRefFromJson(responseBody);
             log.info("idRef : " + storedPsRef.getNationalIdRef() + " idNat : " + storedPsRef.getNationalId());
