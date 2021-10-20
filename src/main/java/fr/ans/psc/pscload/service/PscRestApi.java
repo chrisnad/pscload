@@ -258,9 +258,9 @@ public class PscRestApi {
             Call call = client.newCall(request);
             Response response = call.execute();
             String responseBody = Objects.requireNonNull(response.body()).string();
+            log.info("body : " + responseBody);
             Task.ApiResponse apiResponse = jsonFormatter.apiResponseFromJson(responseBody);
             handleApiResponseLogging(apiResponse, responseBody);
-            log.info("body : " + responseBody);
 
             storedPsRef = jsonFormatter.psRefFromJson(responseBody);
             if (storedPsRef != null) {
