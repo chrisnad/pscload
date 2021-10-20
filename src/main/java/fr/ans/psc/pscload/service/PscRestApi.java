@@ -22,6 +22,7 @@ import java.io.IOException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
@@ -244,7 +245,9 @@ public class PscRestApi {
     }
 
     private PsRef[] getStoredPsRefs() throws IOException {
-        OkHttpClient client = new OkHttpClient();
+        OkHttpClient client = new OkHttpClient.Builder()
+                .readTimeout(20, TimeUnit.MILLISECONDS)
+                .build();
         Request.Builder requestBuilder = new Request.Builder().header("Connection", "close");
         Request request = requestBuilder.url(getPsRefUrl()).get().build();
 
