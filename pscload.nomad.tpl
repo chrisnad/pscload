@@ -91,8 +91,8 @@ auto.continue.scheduler=false
 schedule.cron.expression = 0 0 4/6 * * ?
 schedule.cron.timeZone = Europe/Paris
 management.endpoints.web.exposure.include=health,info,prometheus,metric
-spring.servlet.multipart.max-file-size=10MB
-spring.servlet.multipart.max-request-size=10MB
+spring.servlet.multipart.max-file-size=20MB
+spring.servlet.multipart.max-request-size=20MB
 deactivation.excluded.profession.codes={{ with secret "psc-ecosystem/pscload" }}{{ .Data.data.deactivation_codes_exclusion_list }}{{ end }}
 EOF
         destination = "secrets/application.properties"
