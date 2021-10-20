@@ -258,19 +258,16 @@ public class PscRestApi {
             Call call = client.newCall(request);
             Response response = call.execute();
             String responseBody = Objects.requireNonNull(response.body()).string();
-            log.info("body : " + responseBody);
-            Task.ApiResponse apiResponse = jsonFormatter.apiResponseFromJson(responseBody);
-            handleApiResponseLogging(apiResponse, responseBody);
 
             storedPsRef = jsonFormatter.psRefFromJson(responseBody);
             if (storedPsRef != null) {
                 log.info("idRef : " + storedPsRef.getNationalIdRef() + " idNat : " + storedPsRef.getNationalId());
             } else {
-                log.info("not found");
+                log.info("PsRef not found");
+                throw new Exception("PsRef not found");
             }
-
             response.close();
-        } catch (IOException e) {
+        } catch (Exception e) {
             log.error("Error while querying stored PsRef : " + psref.getNationalIdRef(), e);
             throw new PsRefUnavailableException("Error while querying stored PsRef : ", psref.getNationalIdRef());
         }
@@ -401,26 +398,6 @@ public class PscRestApi {
      */
     public String getPsRefUrl() {
         return apiBaseUrl + "/psref";
-    }
-
-    private void handleApiResponseLogging(Task.ApiResponse apiResponse, String stringifiedBody) {
-        switch (apiResponse.getCode()) {
-            case 200:
-                log.info("PsRef reached : " + stringifiedBody);
-                break;
-            case 500:
-                log.error("mongodb internal server error : " + stringifiedBody);
-                break;
-            case 404:
-                log.info("PsRef not found" + stringifiedBody);
-                break;
-            case 409:
-                log.info("PsRef already exists : " + stringifiedBody);
-                break;
-            default:
-                log.error("PsRef unknown api response type" + stringifiedBody);
-                break;
-        }
     }
 
 }
