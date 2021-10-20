@@ -246,7 +246,7 @@ public class PscRestApi {
 
     private PsRef[] getStoredPsRefs() throws IOException {
         OkHttpClient client = new OkHttpClient.Builder()
-                .readTimeout(20000, TimeUnit.MILLISECONDS)
+                .readTimeout(50000, TimeUnit.MILLISECONDS)
                 .build();
         Request.Builder requestBuilder = new Request.Builder().header("Connection", "close");
         Request request = requestBuilder.url(getPsRefUrl()).get().build();
