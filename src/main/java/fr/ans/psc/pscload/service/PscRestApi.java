@@ -400,16 +400,16 @@ public class PscRestApi {
     private void handleApiResponseLogging(Task.ApiResponse apiResponse, String stringifiedBody) {
         switch (apiResponse.getCode()) {
             case 200:
-                log.debug("PsRef reached : " + stringifiedBody);
+                log.info("PsRef reached : " + stringifiedBody);
                 break;
             case 500:
                 log.error("mongodb internal server error : " + stringifiedBody);
                 break;
             case 404:
-                log.debug("PsRef not found" + stringifiedBody);
+                log.info("PsRef not found" + stringifiedBody);
                 break;
             case 409:
-                log.debug("PsRef already exists : " + stringifiedBody);
+                log.info("PsRef already exists : " + stringifiedBody);
                 break;
             default:
                 log.error("PsRef unknown api response type" + stringifiedBody);
