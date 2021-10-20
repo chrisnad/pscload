@@ -54,7 +54,8 @@ public abstract class Task {
                 log.debug("entity already exist : " + stringifiedBody);
                 break;
             default:
-                log.error("unknown api response type");
+                log.error("unknown api response type" + stringifiedBody);
+                break;
         }
     }
 
@@ -63,7 +64,7 @@ public abstract class Task {
         private String method;
         private String uri;
         private String message;
-        private int code;
+        private Integer code;
 
         public String getStatus() {
             return status;
@@ -97,11 +98,11 @@ public abstract class Task {
             this.message = message;
         }
 
-        public int getCode() {
+        public Integer getCode() {
             return code;
         }
 
-        public void setCode(int code) {
+        public void setCode(Integer code) {
             this.code = code;
         }
     }
