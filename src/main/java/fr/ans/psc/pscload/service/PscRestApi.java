@@ -3,6 +3,7 @@ package fr.ans.psc.pscload.service;
 import com.google.common.collect.MapDifference;
 import com.google.common.collect.Maps;
 import fr.ans.psc.pscload.component.JsonFormatter;
+import fr.ans.psc.pscload.exceptions.PsRefUnavailableException;
 import fr.ans.psc.pscload.metrics.CustomMetrics;
 import fr.ans.psc.pscload.model.*;
 import fr.ans.psc.pscload.service.task.Create;
@@ -132,19 +133,20 @@ public class PscRestApi {
         customMetrics.getAppProgressionGauges().get(CustomMetrics.ProgressionCustomMetric.PS_UPDATE_PROGRESSION).set(0);
 
         diff.entriesOnlyOnLeft().values().parallelStream().forEach(ps -> {
-                    List<ExerciceProfessionnel> psExPros = ps.getProfessions();
-                    AtomicBoolean deletable = new AtomicBoolean(true);
+            List<ExerciceProfessionnel> psExPros = ps.getProfessions();
+            AtomicBoolean deletable = new AtomicBoolean(true);
 
-                    psExPros.forEach(exerciceProfessionnel -> {
-                        if (excludedProfessions != null && Arrays.stream(excludedProfessions)
-                                .anyMatch(profession -> exerciceProfessionnel.getCode().equals(profession)))
-                        { deletable.set(false); }
-                    });
+            psExPros.forEach(exerciceProfessionnel -> {
+                if (excludedProfessions != null && Arrays.stream(excludedProfessions)
+                        .anyMatch(profession -> exerciceProfessionnel.getCode().equals(profession))) {
+                    deletable.set(false);
+                }
+            });
 
-                    if (deletable.get()) {
-                        new Delete(getPsUrl(ps.getNationalId())).send();
-                        customMetrics.getAppProgressionGauges().get(CustomMetrics.ProgressionCustomMetric.PS_DELETE_PROGRESSION).incrementAndGet();
-                    }
+            if (deletable.get()) {
+                new Delete(getPsUrl(ps.getNationalId())).send();
+                customMetrics.getAppProgressionGauges().get(CustomMetrics.ProgressionCustomMetric.PS_DELETE_PROGRESSION).incrementAndGet();
+            }
         });
 
         diff.entriesOnlyOnRight().values().parallelStream().forEach(ps -> {
@@ -227,58 +229,58 @@ public class PscRestApi {
 
     public void uploadPsRefs(Map<String, PsRef> psRefCreateMap, Map<String, PsRef> psRefUpdateMap) {
 
-        try {
-            // get all pairs idRefs / national Id in DB
-            PsRef[] storedPsRefs = getStoredPsRefs();
+        psRefCreateMap.values().parallelStream().forEach(psRef -> {
+            try {
+                createPsRefIfNeeded(psRef);
+            } catch (PsRefUnavailableException e) {
+                log.error(e.getMessage());
+            }
+        });
 
-            psRefCreateMap.values().parallelStream().forEach(psRef ->
-                    createPsRefIfNeeded(psRef, storedPsRefs));
-            psRefUpdateMap.values().parallelStream().forEach(psRef ->
-                    deletePsIfDuplicate(psRef, storedPsRefs));
-            psRefUpdateMap.values().parallelStream().forEach(psRef ->
-                    recreatePsRefAfterDuplicateCleaning(psRef, storedPsRefs));
-        } catch (IOException e) {
-            log.error("error while querying all stored PsRefs: {}", e.getMessage());
-        }
-
+        psRefUpdateMap.values().parallelStream().forEach(psRef -> {
+            try {
+                updatePsRefIfNeeded(psRef);
+            } catch (PsRefUnavailableException e) {
+                log.error(e.getMessage());
+            }
+        });
     }
 
-    private PsRef[] getStoredPsRefs() throws IOException {
+    private PsRef getStoredPsRef(PsRef psref) throws PsRefUnavailableException {
         OkHttpClient client = new OkHttpClient();
         Request.Builder requestBuilder = new Request.Builder().header("Connection", "close");
-        Request request = requestBuilder.url(getPsRefUrl()).get().build();
+        Request request = requestBuilder.url(getPsRefUrl() + "/" + psref.getNationalIdRef()).get().build();
 
-        Call call = client.newCall(request);
-        Response response = call.execute();
-        String responseBody = Objects.requireNonNull(response.body()).string();
-        log.info("response body: {}", responseBody);
-        PsRef[] psRefs = jsonFormatter.psRefsFromJson(responseBody);
-        response.close();
+        PsRef storedPsRef;
 
-        return psRefs;
+        try {
+            Call call = client.newCall(request);
+            Response response = call.execute();
+            String responseBody = Objects.requireNonNull(response.body()).string();
+            log.info("response body: {}", responseBody);
+            storedPsRef = jsonFormatter.psRefFromJson(responseBody);
+            response.close();
+        } catch (IOException e) {
+            log.error("Error while querying stored PsRef : " + psref.getNationalIdRef(), e);
+            throw new PsRefUnavailableException("Error while querying stored PsRef : ", psref.getNationalIdRef());
+        }
+        return storedPsRef;
     }
 
-    private void createPsRefIfNeeded(PsRef psRef, PsRef[] storedPsRefs) {
-        if (Arrays.stream(storedPsRefs).noneMatch(storedPsRef ->
-                storedPsRef.getNationalIdRef().equals(psRef.getNationalIdRef())
-                && storedPsRef.getNationalId().equals(psRef.getNationalId()))) {
+    private void createPsRefIfNeeded(PsRef psRef) throws PsRefUnavailableException {
+        PsRef storedPsRef = getStoredPsRef(psRef);
+
+        if (storedPsRef != null && !psRef.getNationalId().equals(storedPsRef.getNationalId())) {
             new Delete(getPsUrl() + "/force/" + psRef.getNationalIdRef()).send();
             new Create(getPsRefUrl(), jsonFormatter.jsonFromObject(psRef)).send();
         }
     }
 
-    private void deletePsIfDuplicate(PsRef psRef, PsRef[] storedPsRefs) {
-        if (Arrays.stream(storedPsRefs).noneMatch(storedPsRef ->
-                storedPsRef.getNationalIdRef().equals(psRef.getNationalIdRef())
-                        && storedPsRef.getNationalId().equals(psRef.getNationalId()))) {
-            new Delete(getPsUrl() + "/force/" + psRef.getNationalIdRef()).send();
-        }
-    }
+    private void updatePsRefIfNeeded(PsRef psRef) throws PsRefUnavailableException {
+        PsRef storedPsRef = getStoredPsRef(psRef);
 
-    private void recreatePsRefAfterDuplicateCleaning(PsRef psRef, PsRef[] storedPsRefs) {
-        if (Arrays.stream(storedPsRefs).noneMatch(storedPsRef ->
-                storedPsRef.getNationalIdRef().equals(psRef.getNationalIdRef())
-                && storedPsRef.getNationalId().equals(psRef.getNationalId()))) {
+        if (storedPsRef != null && !psRef.getNationalId().equals(storedPsRef.getNationalId())) {
+            new Delete(getPsUrl() + "/force/" + psRef.getNationalIdRef()).send();
             new Create(getPsRefUrl(), jsonFormatter.jsonFromObject(psRef)).send();
         }
     }
@@ -330,7 +332,7 @@ public class PscRestApi {
      * @return the expertise url
      */
     public String getExpertiseUrl(String exProUrl) {
-        return  exProUrl + "/expertises";
+        return exProUrl + "/expertises";
     }
 
     /**
@@ -341,7 +343,7 @@ public class PscRestApi {
      * @return the expertise url
      */
     public String getExpertiseUrl(String exProUrl, String id) {
-        return  getExpertiseUrl(exProUrl) + '/' + URLEncoder.encode(id, StandardCharsets.UTF_8);
+        return getExpertiseUrl(exProUrl) + '/' + URLEncoder.encode(id, StandardCharsets.UTF_8);
     }
 
     /**
@@ -351,7 +353,7 @@ public class PscRestApi {
      * @return the situation url
      */
     public String getSituationUrl(String exProUrl) {
-        return  exProUrl + "/situations";
+        return exProUrl + "/situations";
     }
 
     /**
@@ -362,7 +364,7 @@ public class PscRestApi {
      * @return the situation url
      */
     public String getSituationUrl(String exProUrl, String id) {
-        return  getSituationUrl(exProUrl) + '/' + URLEncoder.encode(id, StandardCharsets.UTF_8);
+        return getSituationUrl(exProUrl) + '/' + URLEncoder.encode(id, StandardCharsets.UTF_8);
     }
 
     /**
@@ -384,7 +386,13 @@ public class PscRestApi {
         return getStructureUrl() + '/' + URLEncoder.encode(id, StandardCharsets.UTF_8);
     }
 
-    /** Gets psRef url */
-    public String getPsRefUrl() { return apiBaseUrl + "/psref";};
+    /**
+     * Gets psRef url
+     */
+    public String getPsRefUrl() {
+        return apiBaseUrl + "/psref";
+    }
+
+    ;
 
 }

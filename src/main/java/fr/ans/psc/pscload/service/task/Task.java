@@ -1,10 +1,7 @@
 package fr.ans.psc.pscload.service.task;
 
 import fr.ans.psc.pscload.component.JsonFormatter;
-import okhttp3.Call;
-import okhttp3.OkHttpClient;
-import okhttp3.Request;
-import okhttp3.Response;
+import okhttp3.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -33,15 +30,31 @@ public abstract class Task {
             Response response = call.execute();
             String responseBody = Objects.requireNonNull(response.body()).string();
             ApiResponse apiResponse = JsonFormatter.apiResponseFromJson(responseBody);
-            log.info("api response : " + apiResponse.getCode());
-            if (apiResponse.getCode() > 195) {
-                log.info("test int");
-            }
-            log.info("response body: {}", responseBody);
+
+            handleApiResponseLogging(apiResponse, responseBody);
             response.close();
         } catch (IOException e) {
             log.error("error: {}", e.getMessage());
             e.printStackTrace();
+        }
+    }
+
+    private void handleApiResponseLogging(ApiResponse apiResponse, String stringifiedBody) {
+        switch (apiResponse.getCode()) {
+            case 200:
+                log.debug("mongodb operation OK : " + stringifiedBody);
+                break;
+            case 500:
+                log.error("mongodb internal server error : " + stringifiedBody);
+                break;
+            case 404:
+                log.debug("entity not found" + stringifiedBody);
+                break;
+            case 409:
+                log.debug("entity already exist : " + stringifiedBody);
+                break;
+            default:
+                log.error("unknown api response type");
         }
     }
 
