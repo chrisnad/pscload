@@ -40,6 +40,8 @@ public class PscRestApi {
     @Autowired
     private JsonFormatter jsonFormatter;
 
+    final Request.Builder requestBuilder = new Request.Builder().header("Connection", "close");
+
     @Value("${api.base.url}")
     private String apiBaseUrl;
 
@@ -247,10 +249,9 @@ public class PscRestApi {
         });
     }
 
-    private PsRef getStoredPsRef(PsRef psref) throws PsRefUnavailableException {
+    private PsRef getStoredPsRef(String nationalIdRef) throws PsRefUnavailableException {
         OkHttpClient client = new OkHttpClient();
-        Request.Builder requestBuilder = new Request.Builder().header("Connection", "close");
-        Request request = requestBuilder.url(getPsRefUrl() + "/" + psref.getNationalIdRef()).get().build();
+        Request request = requestBuilder.url(getPsRefUrl() + "/" + nationalIdRef).get().build();
 
         PsRef storedPsRef;
 
@@ -268,26 +269,80 @@ public class PscRestApi {
             }
             response.close();
         } catch (Exception e) {
-            log.error("Error while querying stored PsRef : " + psref.getNationalIdRef(), e);
-            throw new PsRefUnavailableException("Error while querying stored PsRef : ", psref.getNationalIdRef());
+            log.error("Error while querying stored PsRef : " + nationalIdRef, e);
+            throw new PsRefUnavailableException("Error while querying stored PsRef : ", nationalIdRef);
         }
         return storedPsRef;
     }
 
-    private void createPsRefIfNeeded(PsRef psRef) throws PsRefUnavailableException {
-        PsRef storedPsRef = getStoredPsRef(psRef);
+    private Professionnel getStoredProfessionnel(String nationalIdRef) throws PsRefUnavailableException {
+        OkHttpClient client = new OkHttpClient();
+        Request request = requestBuilder.url(getPsRefUrl() + "/" + nationalIdRef).get().build();
 
+        Professionnel storedProfessionnel;
+
+        try {
+            Call call = client.newCall(request);
+            Response response = call.execute();
+            String responseBody = Objects.requireNonNull(response.body()).string();
+
+            storedProfessionnel = jsonFormatter.psFromJson(responseBody).getData();
+            if (storedProfessionnel == null) {
+                log.info("Ps not found");
+                throw new Exception("PsRef not found");
+            }
+            response.close();
+        } catch (Exception e) {
+            log.error("Error while querying stored Ps : " + nationalIdRef, e);
+            throw new PsRefUnavailableException("Error while querying stored PsRef : ", nationalIdRef);
+        }
+        return storedProfessionnel;
+    }
+
+    /*
+    * method used for toggle operations :
+    * @param psref is a PsRef from toggle table loaded in a map
+    * it contains an old Ps nationalId as PsRef.nationalIdRef, and a fresh Ps nationalId as PsRef.nationalId
+    * we want to make old indexes point on new ones, so then we can destroy old PS and add the PsRef from toggle-table in db
+    *
+    * before operation, we have in the toggle table : oldPs -> newPs
+    * and in Ps table : oldPs, newPS
+    * and in PsRef table : oldPs -> oldPs, newPs -> newPs
+    *
+    * after operation we have in Ps table : newPs
+    * and in PsRef table : oldPs -> newPs, newPs -> newPs
+    *
+    * the toggle table could contains PsRef that have already been processed previously, because this operation could be
+    * run several times, monthly or quarterly. It is not ideal, but we don't have the final word on the data source format.
+    * So we have to make checks to not replay an operation already done
+     */
+    private void createPsRefIfNeeded(PsRef psRef) throws PsRefUnavailableException {
+        // first, we get the PsRef stored in db with the same nationalIdRef than in the toggle table
+        PsRef storedPsRef = getStoredPsRef(psRef.getNationalIdRef());
+
+        // if we get a response AND the nationalId is not the same as in the toggle table, that means that the toggle hasn't been
+        // processed yet for this Ps. so we continue
         if (storedPsRef != null && !psRef.getNationalId().equals(storedPsRef.getNationalId())) {
-            new Delete(getPsUrl() + "/force/" + psRef.getNationalIdRef()).send();
-            new Create(getPsRefUrl(), jsonFormatter.jsonFromObject(psRef)).send();
+            // now we want to definitively destroy oldPs and oldPsRef, but only if newPs already exists in db
+            Professionnel newIndexedPs = getStoredProfessionnel(psRef.getNationalIdRef());
+            if (newIndexedPs != null) {
+                new Delete(getPsUrl() + "/force/" + psRef.getNationalIdRef()).send();
+                new Create(getPsRefUrl(), jsonFormatter.jsonFromObject(psRef)).send();
+            } else {
+                log.error("Ps with old index : {} and new index : {} cannot be updated because new Ps does not exist in db",
+                        psRef.getNationalIdRef(), psRef.getNationalId());
+            }
         }
     }
 
     private void updatePsRefIfNeeded(PsRef psRef) throws PsRefUnavailableException {
-        PsRef storedPsRef = getStoredPsRef(psRef);
+        PsRef storedPsRef = getStoredPsRef(psRef.getNationalIdRef());
 
         if (storedPsRef != null && !psRef.getNationalId().equals(storedPsRef.getNationalId())) {
-            new Delete(getPsUrl() + "/force/" + psRef.getNationalIdRef()).send();
+            PsRef targetPsRef = getStoredPsRef(psRef.getNationalId());
+            if (targetPsRef != null) {
+                new Delete(getPsUrl() + "/force/" + psRef.getNationalIdRef()).send();
+            }
             new Create(getPsRefUrl(), jsonFormatter.jsonFromObject(psRef)).send();
         }
     }
