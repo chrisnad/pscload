@@ -283,7 +283,7 @@ public class Process {
     }
 
     public void uploadPsRefsAfterToggle() {
-        pscRestApi.uploadPsRefs(loader.getPsRefCreateMap(), loader.getPsRefUpdateMap());
+        pscRestApi.uploadPsRefs(loader.getPsRefCreateMap());
     }
 
     public ProcessStepStatus runFirst() {

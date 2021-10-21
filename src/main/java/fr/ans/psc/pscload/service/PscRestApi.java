@@ -8,7 +8,6 @@ import fr.ans.psc.pscload.metrics.CustomMetrics;
 import fr.ans.psc.pscload.model.*;
 import fr.ans.psc.pscload.service.task.Create;
 import fr.ans.psc.pscload.service.task.Delete;
-import fr.ans.psc.pscload.service.task.Task;
 import fr.ans.psc.pscload.service.task.Update;
 import okhttp3.Call;
 import okhttp3.OkHttpClient;
@@ -20,7 +19,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
-import java.io.IOException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
@@ -230,19 +228,11 @@ public class PscRestApi {
                 new Update(getSituationUrl(exProUrl, v.rightValue().getSituationId()), jsonFormatter.jsonFromObject(v.rightValue())).send());
     }
 
-    public void uploadPsRefs(Map<String, PsRef> psRefCreateMap, Map<String, PsRef> psRefUpdateMap) {
+    public void uploadPsRefs(Map<String, PsRef> psRefCreateMap) {
 
         psRefCreateMap.values().parallelStream().forEach(psRef -> {
             try {
-                createPsRefIfNeeded(psRef);
-            } catch (PsRefUnavailableException e) {
-                log.error(e.getMessage());
-            }
-        });
-
-        psRefUpdateMap.values().parallelStream().forEach(psRef -> {
-            try {
-                updatePsRefIfNeeded(psRef);
+                togglePsRefIfNeeded(psRef);
             } catch (PsRefUnavailableException e) {
                 log.error(e.getMessage());
             }
@@ -316,12 +306,12 @@ public class PscRestApi {
     * run several times, monthly or quarterly. It is not ideal, but we don't have the final word on the data source format.
     * So we have to make checks to not replay an operation already done
      */
-    private void createPsRefIfNeeded(PsRef psRef) throws PsRefUnavailableException {
+    private void togglePsRefIfNeeded(PsRef psRef) throws PsRefUnavailableException {
         // first, we get the PsRef stored in db with the same nationalIdRef than in the toggle table
         PsRef storedPsRef = getStoredPsRef(psRef.getNationalIdRef());
 
         // if we get a response AND the nationalId is not the same as in the toggle table, that means that the toggle hasn't been
-        // processed yet for this Ps. so we continue
+        // processed yet for this Ps. So we continue
         if (storedPsRef != null && !psRef.getNationalId().equals(storedPsRef.getNationalId())) {
             // now we want to definitively destroy oldPs and oldPsRef, but only if newPs already exists in db
             Professionnel newIndexedPs = getStoredProfessionnel(psRef.getNationalIdRef());
@@ -332,18 +322,6 @@ public class PscRestApi {
                 log.error("Ps with old index : {} and new index : {} cannot be updated because new Ps does not exist in db",
                         psRef.getNationalIdRef(), psRef.getNationalId());
             }
-        }
-    }
-
-    private void updatePsRefIfNeeded(PsRef psRef) throws PsRefUnavailableException {
-        PsRef storedPsRef = getStoredPsRef(psRef.getNationalIdRef());
-
-        if (storedPsRef != null && !psRef.getNationalId().equals(storedPsRef.getNationalId())) {
-            PsRef targetPsRef = getStoredPsRef(psRef.getNationalId());
-            if (targetPsRef != null) {
-                new Delete(getPsUrl() + "/force/" + psRef.getNationalIdRef()).send();
-            }
-            new Create(getPsRefUrl(), jsonFormatter.jsonFromObject(psRef)).send();
         }
     }
 
