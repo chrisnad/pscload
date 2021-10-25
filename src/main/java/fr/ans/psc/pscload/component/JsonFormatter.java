@@ -94,9 +94,9 @@ public class JsonFormatter {
         return gson.toJson(o);
     }
 
-    public PsRef[] psRefsFromJson(String json) {
+    public PsRef psRefFromJson(String json) {
         PsRefResponse response = gson.fromJson(json, PsRefResponse.class);
-        return response.getPsRefs();
+        return response.getPsRef();
     }
 
     public Task.ApiResponse apiResponseFromJson(String json) {

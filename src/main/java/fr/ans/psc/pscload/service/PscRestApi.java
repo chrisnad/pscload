@@ -3,6 +3,7 @@ package fr.ans.psc.pscload.service;
 import com.google.common.collect.MapDifference;
 import com.google.common.collect.Maps;
 import fr.ans.psc.pscload.component.JsonFormatter;
+import fr.ans.psc.pscload.exceptions.PsRefUnavailableException;
 import fr.ans.psc.pscload.metrics.CustomMetrics;
 import fr.ans.psc.pscload.model.*;
 import fr.ans.psc.pscload.service.task.Create;
@@ -18,7 +19,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
-import java.io.IOException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
@@ -37,6 +37,8 @@ public class PscRestApi {
 
     @Autowired
     private JsonFormatter jsonFormatter;
+
+    final Request.Builder requestBuilder = new Request.Builder().header("Connection", "close");
 
     @Value("${api.base.url}")
     private String apiBaseUrl;
@@ -132,19 +134,20 @@ public class PscRestApi {
         customMetrics.getAppProgressionGauges().get(CustomMetrics.ProgressionCustomMetric.PS_UPDATE_PROGRESSION).set(0);
 
         diff.entriesOnlyOnLeft().values().parallelStream().forEach(ps -> {
-                    List<ExerciceProfessionnel> psExPros = ps.getProfessions();
-                    AtomicBoolean deletable = new AtomicBoolean(true);
+            List<ExerciceProfessionnel> psExPros = ps.getProfessions();
+            AtomicBoolean deletable = new AtomicBoolean(true);
 
-                    psExPros.forEach(exerciceProfessionnel -> {
-                        if (excludedProfessions != null && Arrays.stream(excludedProfessions)
-                                .anyMatch(profession -> exerciceProfessionnel.getCode().equals(profession)))
-                        { deletable.set(false); }
-                    });
+            psExPros.forEach(exerciceProfessionnel -> {
+                if (excludedProfessions != null && Arrays.stream(excludedProfessions)
+                        .anyMatch(profession -> exerciceProfessionnel.getCode().equals(profession))) {
+                    deletable.set(false);
+                }
+            });
 
-                    if (deletable.get()) {
-                        new Delete(getPsUrl(ps.getNationalId())).send();
-                        customMetrics.getAppProgressionGauges().get(CustomMetrics.ProgressionCustomMetric.PS_DELETE_PROGRESSION).incrementAndGet();
-                    }
+            if (deletable.get()) {
+                new Delete(getPsUrl(ps.getNationalId())).send();
+                customMetrics.getAppProgressionGauges().get(CustomMetrics.ProgressionCustomMetric.PS_DELETE_PROGRESSION).incrementAndGet();
+            }
         });
 
         diff.entriesOnlyOnRight().values().parallelStream().forEach(ps -> {
@@ -225,61 +228,100 @@ public class PscRestApi {
                 new Update(getSituationUrl(exProUrl, v.rightValue().getSituationId()), jsonFormatter.jsonFromObject(v.rightValue())).send());
     }
 
-    public void uploadPsRefs(Map<String, PsRef> psRefCreateMap, Map<String, PsRef> psRefUpdateMap) {
+    public void uploadPsRefs(Map<String, PsRef> psRefCreateMap) {
+
+        psRefCreateMap.values().parallelStream().forEach(psRef -> {
+            try {
+                togglePsRefIfNeeded(psRef);
+            } catch (PsRefUnavailableException e) {
+                log.error(e.getMessage());
+            }
+        });
+    }
+
+    private PsRef getStoredPsRef(String nationalIdRef) throws PsRefUnavailableException {
+        OkHttpClient client = new OkHttpClient();
+        Request request = requestBuilder.url(getPsRefUrl() + "/" + nationalIdRef).get().build();
+
+        PsRef storedPsRef;
 
         try {
-            // get all pairs idRefs / national Id in DB
-            PsRef[] storedPsRefs = getStoredPsRefs();
+            Call call = client.newCall(request);
+            Response response = call.execute();
+            String responseBody = Objects.requireNonNull(response.body()).string();
 
-            psRefCreateMap.values().parallelStream().forEach(psRef ->
-                    createPsRefIfNeeded(psRef, storedPsRefs));
-            psRefUpdateMap.values().parallelStream().forEach(psRef ->
-                    deletePsIfDuplicate(psRef, storedPsRefs));
-            psRefUpdateMap.values().parallelStream().forEach(psRef ->
-                    recreatePsRefAfterDuplicateCleaning(psRef, storedPsRefs));
-        } catch (IOException e) {
-            log.error("error while querying all stored PsRefs: {}", e.getMessage());
+            storedPsRef = jsonFormatter.psRefFromJson(responseBody);
+            if (storedPsRef != null) {
+                log.info("idRef : " + storedPsRef.getNationalIdRef() + " idNat : " + storedPsRef.getNationalId());
+            } else {
+                log.info("PsRef not found");
+                throw new Exception("PsRef not found");
+            }
+            response.close();
+        } catch (Exception e) {
+            log.error("Error while querying stored PsRef : " + nationalIdRef, e);
+            throw new PsRefUnavailableException("Error while querying stored PsRef : ", nationalIdRef);
         }
-
+        return storedPsRef;
     }
 
-    private PsRef[] getStoredPsRefs() throws IOException {
+    private Professionnel getStoredProfessionnel(String nationalIdRef) throws PsRefUnavailableException {
         OkHttpClient client = new OkHttpClient();
-        Request.Builder requestBuilder = new Request.Builder().header("Connection", "close");
-        Request request = requestBuilder.url(getPsRefUrl()).get().build();
+        Request request = requestBuilder.url(getPsRefUrl() + "/" + nationalIdRef).get().build();
 
-        Call call = client.newCall(request);
-        Response response = call.execute();
-        String responseBody = Objects.requireNonNull(response.body()).string();
-        log.info("response body: {}", responseBody);
-        PsRef[] psRefs = jsonFormatter.psRefsFromJson(responseBody);
-        response.close();
+        Professionnel storedProfessionnel;
 
-        return psRefs;
-    }
+        try {
+            Call call = client.newCall(request);
+            Response response = call.execute();
+            String responseBody = Objects.requireNonNull(response.body()).string();
 
-    private void createPsRefIfNeeded(PsRef psRef, PsRef[] storedPsRefs) {
-        if (Arrays.stream(storedPsRefs).noneMatch(storedPsRef ->
-                storedPsRef.getNationalIdRef().equals(psRef.getNationalIdRef())
-                && storedPsRef.getNationalId().equals(psRef.getNationalId()))) {
-            new Delete(getPsUrl() + "/force/" + psRef.getNationalIdRef()).send();
-            new Create(getPsRefUrl(), jsonFormatter.jsonFromObject(psRef)).send();
+            storedProfessionnel = jsonFormatter.psFromJson(responseBody).getData();
+            if (storedProfessionnel == null) {
+                log.info("Ps not found");
+                throw new Exception("PsRef not found");
+            }
+            response.close();
+        } catch (Exception e) {
+            log.error("Error while querying stored Ps : " + nationalIdRef, e);
+            throw new PsRefUnavailableException("Error while querying stored PsRef : ", nationalIdRef);
         }
+        return storedProfessionnel;
     }
 
-    private void deletePsIfDuplicate(PsRef psRef, PsRef[] storedPsRefs) {
-        if (Arrays.stream(storedPsRefs).noneMatch(storedPsRef ->
-                storedPsRef.getNationalIdRef().equals(psRef.getNationalIdRef())
-                        && storedPsRef.getNationalId().equals(psRef.getNationalId()))) {
-            new Delete(getPsUrl() + "/force/" + psRef.getNationalIdRef()).send();
-        }
-    }
+    /*
+    * method used for toggle operations :
+    * @param psref is a PsRef from toggle table loaded in a map
+    * it contains an old Ps nationalId as PsRef.nationalIdRef, and a fresh Ps nationalId as PsRef.nationalId
+    * we want to make old indexes point on new ones, so then we can destroy old PS and add the PsRef from toggle-table in db
+    *
+    * before operation, we have in the toggle table : oldPs -> newPs
+    * and in Ps table : oldPs, newPS
+    * and in PsRef table : oldPs -> oldPs, newPs -> newPs
+    *
+    * after operation we have in Ps table : newPs
+    * and in PsRef table : oldPs -> newPs, newPs -> newPs
+    *
+    * the toggle table could contains PsRef that have already been processed previously, because this operation could be
+    * run several times, monthly or quarterly. It is not ideal, but we don't have the final word on the data source format.
+    * So we have to make checks to not replay an operation already done
+     */
+    private void togglePsRefIfNeeded(PsRef psRef) throws PsRefUnavailableException {
+        // first, we get the PsRef stored in db with the same nationalIdRef than in the toggle table
+        PsRef storedPsRef = getStoredPsRef(psRef.getNationalIdRef());
 
-    private void recreatePsRefAfterDuplicateCleaning(PsRef psRef, PsRef[] storedPsRefs) {
-        if (Arrays.stream(storedPsRefs).noneMatch(storedPsRef ->
-                storedPsRef.getNationalIdRef().equals(psRef.getNationalIdRef())
-                && storedPsRef.getNationalId().equals(psRef.getNationalId()))) {
-            new Create(getPsRefUrl(), jsonFormatter.jsonFromObject(psRef)).send();
+        // if we get a response AND the nationalId is not the same as in the toggle table, that means that the toggle hasn't been
+        // processed yet for this Ps. So we continue
+        if (storedPsRef != null && !psRef.getNationalId().equals(storedPsRef.getNationalId())) {
+            // now we want to definitively destroy oldPs and oldPsRef, but only if newPs already exists in db
+            Professionnel newIndexedPs = getStoredProfessionnel(psRef.getNationalIdRef());
+            if (newIndexedPs != null) {
+                new Delete(getPsUrl() + "/force/" + psRef.getNationalIdRef()).send();
+                new Create(getPsRefUrl(), jsonFormatter.jsonFromObject(psRef)).send();
+            } else {
+                log.error("Ps with old index : {} and new index : {} cannot be updated because new Ps does not exist in db",
+                        psRef.getNationalIdRef(), psRef.getNationalId());
+            }
         }
     }
 
@@ -330,7 +372,7 @@ public class PscRestApi {
      * @return the expertise url
      */
     public String getExpertiseUrl(String exProUrl) {
-        return  exProUrl + "/expertises";
+        return exProUrl + "/expertises";
     }
 
     /**
@@ -341,7 +383,7 @@ public class PscRestApi {
      * @return the expertise url
      */
     public String getExpertiseUrl(String exProUrl, String id) {
-        return  getExpertiseUrl(exProUrl) + '/' + URLEncoder.encode(id, StandardCharsets.UTF_8);
+        return getExpertiseUrl(exProUrl) + '/' + URLEncoder.encode(id, StandardCharsets.UTF_8);
     }
 
     /**
@@ -351,7 +393,7 @@ public class PscRestApi {
      * @return the situation url
      */
     public String getSituationUrl(String exProUrl) {
-        return  exProUrl + "/situations";
+        return exProUrl + "/situations";
     }
 
     /**
@@ -362,7 +404,7 @@ public class PscRestApi {
      * @return the situation url
      */
     public String getSituationUrl(String exProUrl, String id) {
-        return  getSituationUrl(exProUrl) + '/' + URLEncoder.encode(id, StandardCharsets.UTF_8);
+        return getSituationUrl(exProUrl) + '/' + URLEncoder.encode(id, StandardCharsets.UTF_8);
     }
 
     /**
@@ -384,7 +426,11 @@ public class PscRestApi {
         return getStructureUrl() + '/' + URLEncoder.encode(id, StandardCharsets.UTF_8);
     }
 
-    /** Gets psRef url */
-    public String getPsRefUrl() { return apiBaseUrl + "/psref";};
+    /**
+     * Gets psRef url
+     */
+    public String getPsRefUrl() {
+        return apiBaseUrl + "/psref";
+    }
 
 }

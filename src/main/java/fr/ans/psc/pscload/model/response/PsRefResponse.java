@@ -17,13 +17,13 @@ public class PsRefResponse implements Serializable {
 
     @JsonProperty("data")
     @SerializedName("data")
-    private PsRef[] psRefs;
+    private PsRef psRef;
 
-    public PsRef[] getPsRefs() {
-        return psRefs;
+    public PsRef getPsRef() {
+        return psRef;
     }
 
-    public void setPsRefs(PsRef[] psRefs) {
-        this.psRefs = psRefs;
+    public void setPsRef(PsRef psRef) {
+        this.psRef = psRef;
     }
 }
