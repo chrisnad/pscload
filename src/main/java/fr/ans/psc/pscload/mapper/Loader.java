@@ -37,8 +37,6 @@ public class Loader {
 
     private final Map<String, PsRef> psRefCreateMap = new HashMap<>();
 
-    private final Map<String, PsRef> psRefUpdateMap = new HashMap<>();
-
     @Autowired
     private CustomMetrics customMetrics;
 
@@ -152,7 +150,6 @@ public class Loader {
         log.info("loading {} into list of PsRef", toggleFile.getName());
 
         psRefCreateMap.clear();
-        psRefUpdateMap.clear();
 
         ObjectRowProcessor rowProcessor = new ObjectRowProcessor() {
             @Override
@@ -161,14 +158,8 @@ public class Loader {
                     throw new IllegalArgumentException();
                 }
                 String[] items = Arrays.asList(objects).toArray(new String[TOGGLE_ROW_LENGTH]);
-
                 PsRef psRefRow = new PsRef(items);
-                PsRef mappedPsRef = psRefCreateMap.get(psRefRow.getNationalIdRef());
-                if (mappedPsRef == null) {
-                    psRefCreateMap.put(psRefRow.getNationalIdRef(), psRefRow);
-                } else {
-                    psRefUpdateMap.put(psRefRow.getNationalIdRef(), psRefRow);
-                }
+                psRefCreateMap.put(psRefRow.getNationalIdRef(), psRefRow);
             }
         };
 
@@ -190,6 +181,4 @@ public class Loader {
     public Map<String, PsRef> getPsRefCreateMap() {
         return psRefCreateMap;
     }
-
-    public Map<String, PsRef> getPsRefUpdateMap() { return psRefUpdateMap; }
 }

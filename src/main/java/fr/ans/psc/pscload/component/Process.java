@@ -81,23 +81,26 @@ public class Process {
      * @throws IOException              the io exception
      */
     public ProcessStepStatus downloadAndUnzip(String downloadUrl) throws GeneralSecurityException, IOException {
-        log.info("cleaning files repository before download");
-        FilesUtils.cleanup(filesDirectory);
-        ProcessStepStatus currentStepStatus;
+        ProcessStepStatus currentStepStatus = ProcessStepStatus.DELAYED;
 
-        if (useCustomSSLContext) {
-            SSLUtils.initSSLContext(cert, key, ca);
-        }
-        // downloads only if zip doesnt exist in our files directory
-        String zipFile = SSLUtils.downloadFile(downloadUrl, filesDirectory);
+        if (customMetrics.getAppMiscGauges().get(CustomMetrics.MiscCustomMetric.STAGE).get() != ProcessStep.TOGGLE_RUNNING.value) {
+            log.info("cleaning files repository before download");
+            FilesUtils.cleanup(filesDirectory);
 
-        // unzipping only if txt file is newer than what we already have
-        if (zipFile != null && FilesUtils.unzip(zipFile, true)) {
-            // stage 1: download and unzip successful
-            customMetrics.getAppMiscGauges().get(CustomMetrics.MiscCustomMetric.STAGE).set(ProcessStep.DOWNLOADED.value);
-            currentStepStatus = ProcessStepStatus.CONTINUE;
-        } else {
-            currentStepStatus = zipFile == null ? ProcessStepStatus.ZIP_FILE_ABSENT : ProcessStepStatus.TXT_FILE_ALREADY_EXISTING;
+            if (useCustomSSLContext) {
+                SSLUtils.initSSLContext(cert, key, ca);
+            }
+            // downloads only if zip doesnt exist in our files directory
+            String zipFile = SSLUtils.downloadFile(downloadUrl, filesDirectory);
+
+            // unzipping only if txt file is newer than what we already have
+            if (zipFile != null && FilesUtils.unzip(zipFile, true)) {
+                // stage 1: download and unzip successful
+                setCurrentStage(ProcessStep.DOWNLOADED);
+                currentStepStatus = ProcessStepStatus.CONTINUE;
+            } else {
+                currentStepStatus = zipFile == null ? ProcessStepStatus.ZIP_FILE_ABSENT : ProcessStepStatus.TXT_FILE_ALREADY_EXISTING;
+            }
         }
         return currentStepStatus;
     }
@@ -119,7 +122,7 @@ public class Process {
 
             try {
                 loader.loadMapsFromFile(latestExtract);
-                customMetrics.getAppMiscGauges().get(CustomMetrics.MiscCustomMetric.STAGE).set(ProcessStep.CURRENT_MAP_LOADED.value);
+                setCurrentStage(ProcessStep.CURRENT_MAP_LOADED);
                 status = ProcessStepStatus.CONTINUE;
 
             } catch (IOException e) {
@@ -148,13 +151,13 @@ public class Process {
         if(ogFile == null) {
             log.info("no ser file has been found");
             // if no ser file is present we should not try to desrialize it but continue with an empty map (map is already initialized)
-            customMetrics.getAppMiscGauges().get(CustomMetrics.MiscCustomMetric.STAGE).set(ProcessStep.PREVIOUS_MAP_LOADED.value);
+            setCurrentStage(ProcessStep.PREVIOUS_MAP_LOADED);
             status = ProcessStepStatus.CONTINUE;
         }
         else {
             try {
                 serializer.deserialiseFileToMaps(ogFile);
-                customMetrics.getAppMiscGauges().get(CustomMetrics.MiscCustomMetric.STAGE).set(ProcessStep.PREVIOUS_MAP_LOADED.value);
+                setCurrentStage(ProcessStep.PREVIOUS_MAP_LOADED);
                 status = ProcessStepStatus.CONTINUE;
             } catch (FileNotFoundException e) {
                 log.error("Error during deserialization", e);
@@ -174,11 +177,11 @@ public class Process {
             throw new ConcurrentProcessCallException("Cancel computing diff : upload changes process still running...");
         }
         log.info("starting diff");
-        customMetrics.getAppMiscGauges().get(CustomMetrics.MiscCustomMetric.STAGE).set(ProcessStep.COMPUTE_DIFF_STARTED.value);
+        setCurrentStage(ProcessStep.COMPUTE_DIFF_STARTED);
         psDiff = pscRestApi.diffPsMaps(serializer.getPsMap(), loader.getPsMap());
         structureDiff = pscRestApi.diffStructureMaps(serializer.getStructureMap(), loader.getStructureMap());
 
-        customMetrics.getAppMiscGauges().get(CustomMetrics.MiscCustomMetric.STAGE).set(ProcessStep.COMPUTE_DIFF_FINISHED.value);
+        setCurrentStage(ProcessStep.COMPUTE_DIFF_FINISHED);
     }
 
     /**
@@ -192,10 +195,10 @@ public class Process {
         if (psDiff == null || structureDiff == null) {
            return ProcessStepStatus.DIFF_NOT_COMPUTED;
         }
-        customMetrics.getAppMiscGauges().get(CustomMetrics.MiscCustomMetric.STAGE).set(ProcessStep.UPLOAD_CHANGES_STARTED.value);
+        setCurrentStage(ProcessStep.UPLOAD_CHANGES_STARTED);
         pscRestApi.uploadChanges(psDiff, structureDiff);
 
-        customMetrics.getAppMiscGauges().get(CustomMetrics.MiscCustomMetric.STAGE).set(ProcessStep.UPLOAD_CHANGES_FINISHED.value);
+        setCurrentStage(ProcessStep.UPLOAD_CHANGES_FINISHED);
         return ProcessStepStatus.CONTINUE;
     }
 
@@ -216,7 +219,7 @@ public class Process {
                         filesDirectory + "/" + latestExtractDate.concat(".ser"));
 
                 Metrics.counter(CustomMetrics.SER_FILE_TAG, CustomMetrics.TIMESTAMP_TAG, latestExtractDate).increment();
-                customMetrics.getAppMiscGauges().get(CustomMetrics.MiscCustomMetric.STAGE).set(ProcessStep.IDLE.value);
+                setCurrentStage(ProcessStep.IDLE);
             } catch (FileNotFoundException e) {
                 log.error("Invalid path", e);
                 return ProcessStepStatus.INVALID_SER_FILE_PATH;
@@ -273,12 +276,14 @@ public class Process {
      * @throws IOException the io exception
      */
     public ProcessStepStatus loadToggleMaps(File toggleFile) throws IOException {
+        setCurrentStage(ProcessStep.TOGGLE_RUNNING);
         loader.loadPSRefMapFromFile(toggleFile);
+        setCurrentStage(ProcessStep.IDLE);
         return ProcessStepStatus.CONTINUE;
     }
 
     public void uploadPsRefsAfterToggle() {
-        pscRestApi.uploadPsRefs(loader.getPsRefCreateMap(), loader.getPsRefUpdateMap());
+        pscRestApi.uploadPsRefs(loader.getPsRefCreateMap());
     }
 
     public ProcessStepStatus runFirst() {
@@ -321,6 +326,10 @@ public class Process {
             currentStepStatus = ProcessStepStatus.ABORT;
         }
         return currentStepStatus;
+    }
+
+    private void setCurrentStage(ProcessStep step) {
+        customMetrics.getAppMiscGauges().get(CustomMetrics.MiscCustomMetric.STAGE).set(step.value);
     }
 
 }
