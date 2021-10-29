@@ -325,6 +325,18 @@ public class PscRestApi {
         }
     }
 
+    public void checkToggleErrors(Map<String, PsRef> psRefMap) {
+        psRefMap.values().parallelStream().forEach(this::logErrorIfToggleIsWrong);
+    }
+
+    private void logErrorIfToggleIsWrong(PsRef psRef) {
+        PsRef storedPsRef = getStoredPsRef(psRef.getNationalIdRef());
+
+        if (storedPsRef == null || !psRef.getNationalId().equals(storedPsRef.getNationalId())) {
+            log.error("Ps not toggled : {} {}", psRef.getNationalIdRef(), psRef.getNationalId());
+        }
+    }
+
     /**
      * Gets ps url.
      *
