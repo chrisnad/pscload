@@ -8,6 +8,7 @@ import fr.ans.psc.pscload.mapper.Loader;
 import fr.ans.psc.pscload.mapper.Serializer;
 import fr.ans.psc.pscload.metrics.CustomMetrics;
 import fr.ans.psc.pscload.model.Professionnel;
+import fr.ans.psc.pscload.model.PsRef;
 import fr.ans.psc.pscload.model.Structure;
 import fr.ans.psc.pscload.service.PscRestApi;
 import io.micrometer.core.instrument.Metrics;
@@ -278,12 +279,19 @@ public class Process {
     public ProcessStepStatus loadToggleMaps(File toggleFile) throws IOException {
         setCurrentStage(ProcessStep.TOGGLE_RUNNING);
         loader.loadPSRefMapFromFile(toggleFile);
-        setCurrentStage(ProcessStep.IDLE);
         return ProcessStepStatus.CONTINUE;
     }
 
     public void uploadPsRefsAfterToggle() {
         pscRestApi.uploadPsRefs(loader.getPsRefCreateMap());
+        setCurrentStage(ProcessStep.IDLE);
+    }
+
+    public void checkToggleErrors(File toggleFile) throws IOException {
+        setCurrentStage(ProcessStep.TOGGLE_RUNNING);
+        loader.loadPSRefMapFromFile(toggleFile);
+        pscRestApi.checkToggleErrors(loader.getPsRefCreateMap());
+        setCurrentStage(ProcessStep.IDLE);
     }
 
     public ProcessStepStatus runFirst() {
