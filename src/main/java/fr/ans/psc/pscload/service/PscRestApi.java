@@ -19,6 +19,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import java.io.IOException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
@@ -255,11 +256,14 @@ public class PscRestApi {
                 log.debug("idRef : " + storedPsRef.getNationalIdRef() + " idNat : " + storedPsRef.getNationalId());
             } else {
                 log.debug("PsRef not found");
-                throw new Exception("PsRef not found");
+                throw new PsRefUnavailableException("PsRef not found ", nationalIdRef);
             }
             response.close();
-        } catch (Exception e) {
+        } catch (PsRefUnavailableException e) {
             log.debug("Error while querying stored PsRef : " + nationalIdRef, e);
+            throw new PsRefUnavailableException("Error while querying stored PsRef : ", nationalIdRef);
+        } catch (IOException ioe) {
+            log.error("I/O Exception when trying to get PsRef " + nationalIdRef);
             throw new PsRefUnavailableException("Error while querying stored PsRef : ", nationalIdRef);
         }
         return storedPsRef;
@@ -332,8 +336,11 @@ public class PscRestApi {
     private void logErrorIfToggleIsWrong(PsRef psRef) {
         PsRef storedPsRef = getStoredPsRef(psRef.getNationalIdRef());
 
-        if (storedPsRef == null || !psRef.getNationalId().equals(storedPsRef.getNationalId())) {
-            log.error("Ps not toggled : {} {}", psRef.getNationalIdRef(), psRef.getNationalId());
+        if (storedPsRef == null) {
+            log.error("stored PSRef is null");
+        }
+        else if (!psRef.getNationalId().equals(storedPsRef.getNationalId())) {
+            log.error("Ps not toggled : Adeli is {}, toggled RRPS is {}, stored PsRef is {}", psRef.getNationalIdRef(), psRef.getNationalId(), storedPsRef.getNationalId());
         }
     }
 
