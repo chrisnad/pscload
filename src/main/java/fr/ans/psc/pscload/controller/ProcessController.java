@@ -343,4 +343,19 @@ class ProcessController {
         return ProcessStepStatus.CONTINUE.message;
     }
 
+    @PostMapping(value = "/check-toggle", produces = MediaType.APPLICATION_JSON_VALUE)
+    @ResponseBody
+    public String checkToggleErrors(@RequestParam("toggleFile") MultipartFile mpFile) {
+        try {
+            File toggleFile = process.uploadToggleFile(mpFile);
+            process.checkToggleErrors(toggleFile);
+            return ProcessStepStatus.CONTINUE.message;
+        } catch (IOException e) {
+            log.error("could not check toggle errors", e);
+        }
+        return ProcessStepStatus.ABORT.message;
+
+
+    }
+
 }

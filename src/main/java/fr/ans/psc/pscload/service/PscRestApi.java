@@ -19,6 +19,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import java.io.IOException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
@@ -252,14 +253,17 @@ public class PscRestApi {
 
             storedPsRef = jsonFormatter.psRefFromJson(responseBody);
             if (storedPsRef != null) {
-                log.info("idRef : " + storedPsRef.getNationalIdRef() + " idNat : " + storedPsRef.getNationalId());
+                log.debug("idRef : " + storedPsRef.getNationalIdRef() + " idNat : " + storedPsRef.getNationalId());
             } else {
-                log.info("PsRef not found");
-                throw new Exception("PsRef not found");
+                log.debug("PsRef not found");
+                throw new PsRefUnavailableException("PsRef not found ", nationalIdRef);
             }
             response.close();
-        } catch (Exception e) {
-            log.error("Error while querying stored PsRef : " + nationalIdRef, e);
+        } catch (PsRefUnavailableException e) {
+            log.debug("Error while querying stored PsRef : " + nationalIdRef, e);
+            throw new PsRefUnavailableException("Error while querying stored PsRef : ", nationalIdRef);
+        } catch (IOException ioe) {
+            log.error("I/O Exception when trying to get PsRef " + nationalIdRef);
             throw new PsRefUnavailableException("Error while querying stored PsRef : ", nationalIdRef);
         }
         return storedPsRef;
@@ -267,7 +271,7 @@ public class PscRestApi {
 
     private Professionnel getStoredProfessionnel(String nationalIdRef) throws PsRefUnavailableException {
         OkHttpClient client = new OkHttpClient();
-        Request request = requestBuilder.url(getPsRefUrl() + "/" + nationalIdRef).get().build();
+        Request request = requestBuilder.url(getPsUrl() + "/" + nationalIdRef).get().build();
 
         Professionnel storedProfessionnel;
 
@@ -314,7 +318,7 @@ public class PscRestApi {
         // processed yet for this Ps. So we continue
         if (storedPsRef != null && !psRef.getNationalId().equals(storedPsRef.getNationalId())) {
             // now we want to definitively destroy oldPs and oldPsRef, but only if newPs already exists in db
-            Professionnel newIndexedPs = getStoredProfessionnel(psRef.getNationalIdRef());
+            Professionnel newIndexedPs = getStoredProfessionnel(psRef.getNationalId());
             if (newIndexedPs != null) {
                 new Delete(getPsUrl() + "/force/" + psRef.getNationalIdRef()).send();
                 new Create(getPsRefUrl(), jsonFormatter.jsonFromObject(psRef)).send();
@@ -322,6 +326,21 @@ public class PscRestApi {
                 log.error("Ps with old index : {} and new index : {} cannot be updated because new Ps does not exist in db",
                         psRef.getNationalIdRef(), psRef.getNationalId());
             }
+        }
+    }
+
+    public void checkToggleErrors(Map<String, PsRef> psRefMap) {
+        psRefMap.values().parallelStream().forEach(this::logErrorIfToggleIsWrong);
+    }
+
+    private void logErrorIfToggleIsWrong(PsRef psRef) {
+        PsRef storedPsRef = getStoredPsRef(psRef.getNationalIdRef());
+
+        if (storedPsRef == null) {
+            log.error("stored PSRef is null");
+        }
+        else if (!psRef.getNationalId().equals(storedPsRef.getNationalId())) {
+            log.error("Ps not toggled : Adeli is {}, toggled RRPS is {}, stored PsRef is {}", psRef.getNationalIdRef(), psRef.getNationalId(), storedPsRef.getNationalId());
         }
     }
 
