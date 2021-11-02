@@ -271,7 +271,7 @@ public class PscRestApi {
 
     private Professionnel getStoredProfessionnel(String nationalIdRef) throws PsRefUnavailableException {
         OkHttpClient client = new OkHttpClient();
-        Request request = requestBuilder.url(getPsRefUrl() + "/" + nationalIdRef).get().build();
+        Request request = requestBuilder.url(getPsUrl() + "/" + nationalIdRef).get().build();
 
         Professionnel storedProfessionnel;
 
@@ -318,7 +318,7 @@ public class PscRestApi {
         // processed yet for this Ps. So we continue
         if (storedPsRef != null && !psRef.getNationalId().equals(storedPsRef.getNationalId())) {
             // now we want to definitively destroy oldPs and oldPsRef, but only if newPs already exists in db
-            Professionnel newIndexedPs = getStoredProfessionnel(psRef.getNationalIdRef());
+            Professionnel newIndexedPs = getStoredProfessionnel(psRef.getNationalId());
             if (newIndexedPs != null) {
                 new Delete(getPsUrl() + "/force/" + psRef.getNationalIdRef()).send();
                 new Create(getPsRefUrl(), jsonFormatter.jsonFromObject(psRef)).send();
