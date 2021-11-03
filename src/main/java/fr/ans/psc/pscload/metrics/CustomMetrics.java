@@ -40,14 +40,14 @@ public class CustomMetrics {
         }
     }
 
-    private enum OPERATION {
+    public enum OPERATION {
         CREATE,
         UPDATE,
         DELETE,
         UPLOAD
     }
 
-    private enum ENTITY_TYPE {
+    public enum ENTITY_TYPE {
         PS,
         STRUCTURE
     }
