@@ -351,13 +351,13 @@ public class PscRestApi {
         Arrays.stream(CustomMetrics.ID_TYPE.values()).forEach(id_type -> {
             Arrays.stream(CustomMetrics.OPERATION.values()).forEach(operation -> {
                 String metricKey = String.join("_", CustomMetrics.ENTITY_TYPE.PS.name(), id_type.name(), operation.name(), "SIZE");
-                customMetrics.getPsSizeGauges().get(CustomMetrics.PsCustomMetric.valueOf(metricKey)).set(0);
+                customMetrics.getPsSizeGauges().get(CustomMetrics.PsCustomMetric.valueOf(metricKey)).set(-1);
             });
         });
         // reset all StructureSizeMetrics
         Arrays.stream(CustomMetrics.OPERATION.values()).forEach(operation -> {
             String metricKey = String.join("_", CustomMetrics.ENTITY_TYPE.STRUCTURE.name(), operation.name(), "SIZE");
-            customMetrics.getAppStructureSizeGauges().get(CustomMetrics.StructureCustomMetric.valueOf(metricKey)).set(0);
+            customMetrics.getAppStructureSizeGauges().get(CustomMetrics.StructureCustomMetric.valueOf(metricKey)).set(-1);
         });
     }
 
