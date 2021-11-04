@@ -187,7 +187,7 @@ public class CustomMetrics {
         // Reference Ps metrics :
         // Initialize metrics for each id_type and counts of last upload changes as reference for computing changes %
         Arrays.stream(ID_TYPE.values()).forEach(id_type -> {
-            String metricKey = String.join("_", ENTITY_TYPE.PS.name(), id_type.name(), REFERENCE_TAG, "SIZE");
+            String metricKey = String.join("_", ENTITY_TYPE.PS.name(), id_type.name(), REFERENCE_TAG.toUpperCase(), "SIZE");
             appPsSizeGauges.put(
                     PsCustomMetric.valueOf(metricKey),
                     meterRegistry.gauge(
