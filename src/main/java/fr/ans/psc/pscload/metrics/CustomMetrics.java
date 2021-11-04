@@ -22,6 +22,8 @@ public class CustomMetrics {
     private static final String ID_TYPE_TAG = "idType";
     private static final String OPERATION_TAG = "operation";
     private static final String ENTITY_TAG = "entity";
+    private static final String REFERENCE_TAG = "reference";
+    private static final String COUNT_TAG = "count";
 
     public static final String SER_FILE_TAG = "ser.file";
     public static final String TIMESTAMP_TAG = "timestamp";
@@ -85,6 +87,12 @@ public class CustomMetrics {
         PS_FINESS_UPDATE_SIZE,
         PS_SIRET_UPDATE_SIZE,
         PS_RPPS_UPDATE_SIZE,
+
+        PS_ANY_REFERENCE_SIZE,
+        PS_ADELI_REFERENCE_SIZE,
+        PS_FINESS_REFERENCE_SIZE,
+        PS_SIRET_REFERENCE_SIZE,
+        PS_RPPS_REFERENCE_SIZE,
 
     }
 
@@ -175,6 +183,20 @@ public class CustomMetrics {
                         );
                 })
         );
+
+        // Reference Ps metrics :
+        // Initialize metrics for each id_type and counts of last upload changes as reference for computing changes %
+        Arrays.stream(ID_TYPE.values()).forEach(id_type -> {
+            String metricKey = String.join("_", ENTITY_TYPE.PS.name(), id_type.name(), REFERENCE_TAG, "SIZE");
+            appPsSizeGauges.put(
+                    PsCustomMetric.valueOf(metricKey),
+                    meterRegistry.gauge(
+                            PS_METRIC_NAME,
+                            Tags.of(ID_TYPE_TAG, id_type.toString(), REFERENCE_TAG, COUNT_TAG),
+                            new AtomicInteger(-1)
+                    )
+            );
+        });
 
         Counter.builder(SER_FILE_TAG)
                 .tags(TIMESTAMP_TAG, "")
