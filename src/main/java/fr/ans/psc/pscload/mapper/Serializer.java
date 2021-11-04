@@ -73,19 +73,19 @@ public class Serializer {
         structureMap = (Map<String, Structure>) kryo.readClassAndObject(input);
         input.close();
 
-        customMetrics.getPsSizeGauges().get(CustomMetrics.PsCustomMetric.PS_ADELI_REFERENCE_SIZE).set(
+        customMetrics.getPsSizeGauges().get(CustomMetrics.PsCustomMetric.PS_ADELI_UPLOAD_SIZE).set(
                 Math.toIntExact(psMap.values().stream().filter(professionnel ->
                         CustomMetrics.ID_TYPE.ADELI.value.equals(professionnel.getIdType())).count())
         );
-        customMetrics.getPsSizeGauges().get(CustomMetrics.PsCustomMetric.PS_FINESS_REFERENCE_SIZE).set(
+        customMetrics.getPsSizeGauges().get(CustomMetrics.PsCustomMetric.PS_FINESS_UPLOAD_SIZE).set(
                 Math.toIntExact(psMap.values().stream().filter(professionnel ->
                         CustomMetrics.ID_TYPE.FINESS.value.equals(professionnel.getIdType())).count())
         );
-        customMetrics.getPsSizeGauges().get(CustomMetrics.PsCustomMetric.PS_SIRET_REFERENCE_SIZE).set(
+        customMetrics.getPsSizeGauges().get(CustomMetrics.PsCustomMetric.PS_SIRET_UPLOAD_SIZE).set(
                 Math.toIntExact(psMap.values().stream().filter(professionnel ->
                         CustomMetrics.ID_TYPE.SIRET.value.equals(professionnel.getIdType())).count())
         );
-        customMetrics.getPsSizeGauges().get(CustomMetrics.PsCustomMetric.PS_RPPS_REFERENCE_SIZE).set(
+        customMetrics.getPsSizeGauges().get(CustomMetrics.PsCustomMetric.PS_RPPS_UPLOAD_SIZE).set(
                 Math.toIntExact(psMap.values().stream().filter(professionnel ->
                         CustomMetrics.ID_TYPE.RPPS.value.equals(professionnel.getIdType())).count())
         );
