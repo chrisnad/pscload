@@ -40,14 +40,14 @@ public class CustomMetrics {
         }
     }
 
-    private enum OPERATION {
+    public enum OPERATION {
         CREATE,
         UPDATE,
         DELETE,
         UPLOAD
     }
 
-    private enum ENTITY_TYPE {
+    public enum ENTITY_TYPE {
         PS,
         STRUCTURE
     }
@@ -85,6 +85,12 @@ public class CustomMetrics {
         PS_FINESS_UPDATE_SIZE,
         PS_SIRET_UPDATE_SIZE,
         PS_RPPS_UPDATE_SIZE,
+
+        PS_ANY_REFERENCE_SIZE,
+        PS_ADELI_REFERENCE_SIZE,
+        PS_FINESS_REFERENCE_SIZE,
+        PS_SIRET_REFERENCE_SIZE,
+        PS_RPPS_REFERENCE_SIZE,
 
     }
 
@@ -132,7 +138,10 @@ public class CustomMetrics {
                             meterRegistry.gauge(
                                     PS_METRIC_NAME,
                                     Tags.of(ID_TYPE_TAG, id_type.toString(), OPERATION_TAG, operation.name().toLowerCase()),
-                                    new AtomicInteger(0)
+                                    // set to -1 to discriminate no changes on this operation & entity (-> 0) and not the correct stage (-> -1)
+                                    // a -1 value means that we're not at a stage between diff & upload
+                                    // a 0 value means that there are no changes (delete, update, etc) for this particular entity after diff
+                                    new AtomicInteger(-1)
                             )
                     );
                 })
@@ -148,7 +157,10 @@ public class CustomMetrics {
                         meterRegistry.gauge(
                                 STRUCTURE_METRIC_NAME,
                                 Tags.of(OPERATION_TAG, operation.name().toLowerCase()),
-                                new AtomicInteger(0)
+                                // set to -1 to discriminate no changes on this operation & entity (-> 0) and not the correct stage (-> -1)
+                                // a -1 value means that we're not at a stage between diff & upload
+                                // a 0 value means that there are no changes (delete, update, etc) for this particular entity after diff
+                                new AtomicInteger(-1)
                         )
                 );
         });

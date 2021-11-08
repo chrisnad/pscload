@@ -3,9 +3,11 @@ package fr.ans.psc.pscload.mapper;
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
+import fr.ans.psc.pscload.metrics.CustomMetrics;
 import fr.ans.psc.pscload.model.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.io.File;
@@ -41,6 +43,9 @@ public class Serializer {
 
     private Map<String, Structure> structureMap = new HashMap<>();
 
+    @Autowired
+    private CustomMetrics customMetrics;
+
     public Map<String, Professionnel> getPsMap() {
         return psMap;
     }
@@ -67,6 +72,24 @@ public class Serializer {
         psMap = (Map<String, Professionnel>) kryo.readClassAndObject(input);
         structureMap = (Map<String, Structure>) kryo.readClassAndObject(input);
         input.close();
+
+        customMetrics.getPsSizeGauges().get(CustomMetrics.PsCustomMetric.PS_ADELI_UPLOAD_SIZE).set(
+                Math.toIntExact(psMap.values().stream().filter(professionnel ->
+                        CustomMetrics.ID_TYPE.ADELI.value.equals(professionnel.getIdType())).count())
+        );
+        customMetrics.getPsSizeGauges().get(CustomMetrics.PsCustomMetric.PS_FINESS_UPLOAD_SIZE).set(
+                Math.toIntExact(psMap.values().stream().filter(professionnel ->
+                        CustomMetrics.ID_TYPE.FINESS.value.equals(professionnel.getIdType())).count())
+        );
+        customMetrics.getPsSizeGauges().get(CustomMetrics.PsCustomMetric.PS_SIRET_UPLOAD_SIZE).set(
+                Math.toIntExact(psMap.values().stream().filter(professionnel ->
+                        CustomMetrics.ID_TYPE.SIRET.value.equals(professionnel.getIdType())).count())
+        );
+        customMetrics.getPsSizeGauges().get(CustomMetrics.PsCustomMetric.PS_RPPS_UPLOAD_SIZE).set(
+                Math.toIntExact(psMap.values().stream().filter(professionnel ->
+                        CustomMetrics.ID_TYPE.RPPS.value.equals(professionnel.getIdType())).count())
+        );
+
 
         log.info("deserialization complete!");
     }
