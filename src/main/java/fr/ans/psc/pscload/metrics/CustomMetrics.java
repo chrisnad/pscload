@@ -187,6 +187,21 @@ public class CustomMetrics {
                 .register(meterRegistry);
     }
 
+    public void resetSizeMetrics() {
+        // reset all PsSizeMetrics
+        Arrays.stream(CustomMetrics.ID_TYPE.values()).forEach(id_type -> {
+            Arrays.stream(CustomMetrics.OPERATION.values()).forEach(operation -> {
+                String metricKey = String.join("_", CustomMetrics.ENTITY_TYPE.PS.name(), id_type.name(), operation.name(), "SIZE");
+                appPsSizeGauges.get(CustomMetrics.PsCustomMetric.valueOf(metricKey)).set(-1);
+            });
+        });
+        // reset all StructureSizeMetrics
+        Arrays.stream(CustomMetrics.OPERATION.values()).forEach(operation -> {
+            String metricKey = String.join("_", CustomMetrics.ENTITY_TYPE.STRUCTURE.name(), operation.name(), "SIZE");
+            appStructureSizeGauges.get(CustomMetrics.StructureCustomMetric.valueOf(metricKey)).set(-1);
+        });
+    }
+
     /**
      * Gets app gauges.
      *
