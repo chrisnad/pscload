@@ -22,6 +22,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.*;
 import java.security.GeneralSecurityException;
+import java.util.Arrays;
 import java.util.Map;
 import java.util.Objects;
 
@@ -108,7 +109,6 @@ public class Process {
 
     /**
      * Load latest file.
-     *
      */
     public ProcessStepStatus loadLatestFile() throws ConcurrentProcessCallException {
         ProcessStepStatus status;
@@ -138,7 +138,6 @@ public class Process {
 
     /**
      * Deserialize file to maps.
-     *
      */
     public ProcessStepStatus deserializeFileToMaps() throws ConcurrentProcessCallException {
         ProcessStepStatus status;
@@ -149,22 +148,15 @@ public class Process {
 
         File ogFile = latestFiles.get("ser");
 
-        if(ogFile == null) {
-            log.info("no ser file has been found");
-            // if no ser file is present we should not try to desrialize it but continue with an empty map (map is already initialized)
+        try {
+            serializer.deserialiseFileToMaps(ogFile);
             setCurrentStage(ProcessStep.PREVIOUS_MAP_LOADED);
             status = ProcessStepStatus.CONTINUE;
+        } catch (FileNotFoundException e) {
+            log.error("Error during deserialization", e);
+            status = ProcessStepStatus.INVALID_SER_FILE_PATH;
         }
-        else {
-            try {
-                serializer.deserialiseFileToMaps(ogFile);
-                setCurrentStage(ProcessStep.PREVIOUS_MAP_LOADED);
-                status = ProcessStepStatus.CONTINUE;
-            } catch (FileNotFoundException e) {
-                log.error("Error during deserialization", e);
-                status = ProcessStepStatus.INVALID_SER_FILE_PATH;
-            }
-        }
+
         return status;
     }
 
@@ -174,7 +166,7 @@ public class Process {
     public void computeDiff() throws ConcurrentProcessCallException {
 
         if (customMetrics.getAppMiscGauges().get(CustomMetrics.MiscCustomMetric.STAGE).get() == ProcessStep.UPLOAD_CHANGES_STARTED.value
-        || customMetrics.getAppMiscGauges().get(CustomMetrics.MiscCustomMetric.STAGE).get() == ProcessStep.COMPUTE_DIFF_STARTED.value) {
+                || customMetrics.getAppMiscGauges().get(CustomMetrics.MiscCustomMetric.STAGE).get() == ProcessStep.COMPUTE_DIFF_STARTED.value) {
             throw new ConcurrentProcessCallException("Cancel computing diff : upload changes process still running...");
         }
         log.info("starting diff");
@@ -187,14 +179,13 @@ public class Process {
 
     /**
      * Load changes.
-     *
      */
     public ProcessStepStatus uploadChanges() throws ConcurrentProcessCallException {
         if (customMetrics.getAppMiscGauges().get(CustomMetrics.MiscCustomMetric.STAGE).get() == ProcessStep.UPLOAD_CHANGES_STARTED.value) {
             throw new ConcurrentProcessCallException("Cancel new upload changes : previous upload changes process still running...");
         }
         if (psDiff == null || structureDiff == null) {
-           return ProcessStepStatus.DIFF_NOT_COMPUTED;
+            return ProcessStepStatus.DIFF_NOT_COMPUTED;
         }
         setCurrentStage(ProcessStep.UPLOAD_CHANGES_STARTED);
         pscRestApi.uploadChanges(psDiff, structureDiff);
@@ -205,15 +196,13 @@ public class Process {
 
     /**
      * Serialize maps to file.
-     *
      */
     public ProcessStepStatus serializeMapsToFile() {
         ProcessStepStatus status;
         // serialise latest extract
         if (latestExtract == null) {
             status = ProcessStepStatus.TXT_FILE_ABSENT;
-        }
-        else {
+        } else {
             String latestExtractDate = FilesUtils.getDateStringFromFileName(latestExtract);
             try {
                 serializer.serialiseMapsToFile(loader.getPsMap(), loader.getStructureMap(),
@@ -231,7 +220,7 @@ public class Process {
         return status;
     }
 
-    public ProcessStepStatus triggerExtract()  {
+    public ProcessStepStatus triggerExtract() {
         ProcessStepStatus processStepStatus;
         log.info("prepare trigger RASS extract");
         OkHttpClient client = new OkHttpClient();

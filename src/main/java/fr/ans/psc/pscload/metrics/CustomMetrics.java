@@ -1,5 +1,7 @@
 package fr.ans.psc.pscload.metrics;
 
+import fr.ans.psc.pscload.model.Professionnel;
+import fr.ans.psc.pscload.model.Structure;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Tags;
@@ -27,7 +29,6 @@ public class CustomMetrics {
     public static final String TIMESTAMP_TAG = "timestamp";
 
     public enum ID_TYPE {
-        ANY("any"),
         ADELI("0"),
         FINESS("3"),
         SIRET("5"),
@@ -62,31 +63,26 @@ public class CustomMetrics {
      * The enums Custom metric.
      */
     public enum PsCustomMetric {
-        PS_ANY_UPLOAD_SIZE,
         PS_ADELI_UPLOAD_SIZE,
         PS_FINESS_UPLOAD_SIZE,
         PS_SIRET_UPLOAD_SIZE,
         PS_RPPS_UPLOAD_SIZE,
 
-        PS_ANY_DELETE_SIZE,
         PS_ADELI_DELETE_SIZE,
         PS_FINESS_DELETE_SIZE,
         PS_SIRET_DELETE_SIZE,
         PS_RPPS_DELETE_SIZE,
 
-        PS_ANY_CREATE_SIZE,
         PS_ADELI_CREATE_SIZE,
         PS_FINESS_CREATE_SIZE,
         PS_SIRET_CREATE_SIZE,
         PS_RPPS_CREATE_SIZE,
 
-        PS_ANY_UPDATE_SIZE,
         PS_ADELI_UPDATE_SIZE,
         PS_FINESS_UPDATE_SIZE,
         PS_SIRET_UPDATE_SIZE,
         PS_RPPS_UPDATE_SIZE,
 
-        PS_ANY_REFERENCE_SIZE,
         PS_ADELI_REFERENCE_SIZE,
         PS_FINESS_REFERENCE_SIZE,
         PS_SIRET_REFERENCE_SIZE,
@@ -185,6 +181,42 @@ public class CustomMetrics {
         Counter.builder(SER_FILE_TAG)
                 .tags(TIMESTAMP_TAG, "")
                 .register(meterRegistry);
+    }
+
+    public void resetSizeMetrics() {
+        // reset all PsSizeMetrics
+        Arrays.stream(CustomMetrics.ID_TYPE.values()).forEach(id_type -> {
+            Arrays.stream(CustomMetrics.OPERATION.values()).forEach(operation -> {
+                String metricKey = String.join("_", CustomMetrics.ENTITY_TYPE.PS.name(), id_type.name(), operation.name(), "SIZE");
+                appPsSizeGauges.get(CustomMetrics.PsCustomMetric.valueOf(metricKey)).set(-1);
+            });
+        });
+        // reset all StructureSizeMetrics
+        Arrays.stream(CustomMetrics.OPERATION.values()).forEach(operation -> {
+            String metricKey = String.join("_", CustomMetrics.ENTITY_TYPE.STRUCTURE.name(), operation.name(), "SIZE");
+            appStructureSizeGauges.get(CustomMetrics.StructureCustomMetric.valueOf(metricKey)).set(-1);
+        });
+    }
+
+    public void setUploadSizeMetricsAfterDeserializing(Map<String, Professionnel> psMap, Map<String, Structure> structureMap) {
+        appPsSizeGauges.get(PsCustomMetric.PS_ADELI_UPLOAD_SIZE).set(
+                Math.toIntExact(psMap.values().stream().filter(professionnel ->
+                        ID_TYPE.ADELI.value.equals(professionnel.getIdType())).count()));
+
+        appPsSizeGauges.get(PsCustomMetric.PS_FINESS_UPLOAD_SIZE).set(
+                Math.toIntExact(psMap.values().stream().filter(professionnel ->
+                        ID_TYPE.FINESS.value.equals(professionnel.getIdType())).count()));
+
+        appPsSizeGauges.get(PsCustomMetric.PS_SIRET_UPLOAD_SIZE).set(
+                Math.toIntExact(psMap.values().stream().filter(professionnel ->
+                        ID_TYPE.SIRET.value.equals(professionnel.getIdType())).count()));
+
+        appPsSizeGauges.get(PsCustomMetric.PS_RPPS_UPLOAD_SIZE).set(
+                Math.toIntExact(psMap.values().stream().filter(professionnel ->
+                        ID_TYPE.RPPS.value.equals(professionnel.getIdType())).count()));
+
+        appStructureSizeGauges.get(StructureCustomMetric.STRUCTURE_UPLOAD_SIZE).set(
+                structureMap.values().size());
     }
 
     /**

@@ -44,10 +44,6 @@ public class Loader {
         log.info("loading {} into list of Ps", file.getName());
         psMap.clear();
         structureMap.clear();
-//        customMetrics.getPsSizeGauges().get(CustomMetrics.PsCustomMetric.PS_ADELI_UPLOAD_SIZE).set(0);
-//        customMetrics.getPsSizeGauges().get(CustomMetrics.PsCustomMetric.PS_FINESS_UPLOAD_SIZE).set(0);
-//        customMetrics.getPsSizeGauges().get(CustomMetrics.PsCustomMetric.PS_SIRET_UPLOAD_SIZE).set(0);
-//        customMetrics.getPsSizeGauges().get(CustomMetrics.PsCustomMetric.PS_RPPS_UPLOAD_SIZE).set(0);
         // ObjectRowProcessor converts the parsed values and gives you the resulting row.
         ObjectRowProcessor rowProcessor = new ObjectRowProcessor() {
             @Override
@@ -62,20 +58,6 @@ public class Loader {
                     mapExPro(psRow, mappedPs);
                 } else {
                     psMap.put(psRow.getNationalId(), psRow);
-                    // Ps metrics by idType
-//                    switch (items[0]) {
-//                        case "0" :
-//                            customMetrics.getPsSizeGauges().get(CustomMetrics.PsCustomMetric.PS_ADELI_UPLOAD_SIZE).incrementAndGet();
-//                            break;
-//                        case "3" :
-//                            customMetrics.getPsSizeGauges().get(CustomMetrics.PsCustomMetric.PS_FINESS_UPLOAD_SIZE).incrementAndGet();
-//                            break;
-//                        case "5" :
-//                            customMetrics.getPsSizeGauges().get(CustomMetrics.PsCustomMetric.PS_SIRET_UPLOAD_SIZE).incrementAndGet();
-//                            break;
-//                        case "8" :
-//                            customMetrics.getPsSizeGauges().get(CustomMetrics.PsCustomMetric.PS_RPPS_UPLOAD_SIZE).incrementAndGet();
-//                    }
                 }
                 // get structure in map by its reference from row
                 if (structureMap.get(items[28]) == null) {
@@ -107,8 +89,6 @@ public class Loader {
 
         log.info("loading complete!");
 
-        customMetrics.getPsSizeGauges().get(CustomMetrics.PsCustomMetric.PS_ANY_UPLOAD_SIZE).set(psMap.size());
-        customMetrics.getAppStructureSizeGauges().get(CustomMetrics.StructureCustomMetric.STRUCTURE_UPLOAD_SIZE).set(structureMap.size());
         customMetrics.getAppMiscGauges().get(CustomMetrics.MiscCustomMetric.STAGE).set(1);  // stage 1: loaded file into map
     }
 

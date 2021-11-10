@@ -66,31 +66,21 @@ public class Serializer {
     }
 
     public void deserialiseFileToMaps(File file) throws FileNotFoundException {
-        log.info("deserializing {} to Ps map", file.getName());
 
-        Input input = new Input(new FileInputStream(file));
-        psMap = (Map<String, Professionnel>) kryo.readClassAndObject(input);
-        structureMap = (Map<String, Structure>) kryo.readClassAndObject(input);
-        input.close();
+        if(file == null) {
+            log.info("no ser file has been found, maps will be empty");
+            psMap.clear();
+            structureMap.clear();
+        } else {
+            log.info("deserializing {} to Ps map", file.getName());
 
-        customMetrics.getPsSizeGauges().get(CustomMetrics.PsCustomMetric.PS_ADELI_UPLOAD_SIZE).set(
-                Math.toIntExact(psMap.values().stream().filter(professionnel ->
-                        CustomMetrics.ID_TYPE.ADELI.value.equals(professionnel.getIdType())).count())
-        );
-        customMetrics.getPsSizeGauges().get(CustomMetrics.PsCustomMetric.PS_FINESS_UPLOAD_SIZE).set(
-                Math.toIntExact(psMap.values().stream().filter(professionnel ->
-                        CustomMetrics.ID_TYPE.FINESS.value.equals(professionnel.getIdType())).count())
-        );
-        customMetrics.getPsSizeGauges().get(CustomMetrics.PsCustomMetric.PS_SIRET_UPLOAD_SIZE).set(
-                Math.toIntExact(psMap.values().stream().filter(professionnel ->
-                        CustomMetrics.ID_TYPE.SIRET.value.equals(professionnel.getIdType())).count())
-        );
-        customMetrics.getPsSizeGauges().get(CustomMetrics.PsCustomMetric.PS_RPPS_UPLOAD_SIZE).set(
-                Math.toIntExact(psMap.values().stream().filter(professionnel ->
-                        CustomMetrics.ID_TYPE.RPPS.value.equals(professionnel.getIdType())).count())
-        );
+            Input input = new Input(new FileInputStream(file));
+            psMap = (Map<String, Professionnel>) kryo.readClassAndObject(input);
+            structureMap = (Map<String, Structure>) kryo.readClassAndObject(input);
+            input.close();
+        }
 
-
+        customMetrics.setUploadSizeMetricsAfterDeserializing(psMap, structureMap);
         log.info("deserialization complete!");
     }
 
