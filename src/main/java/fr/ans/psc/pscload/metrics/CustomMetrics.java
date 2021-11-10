@@ -1,5 +1,7 @@
 package fr.ans.psc.pscload.metrics;
 
+import fr.ans.psc.pscload.model.Professionnel;
+import fr.ans.psc.pscload.model.Structure;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Tags;
@@ -194,6 +196,27 @@ public class CustomMetrics {
             String metricKey = String.join("_", CustomMetrics.ENTITY_TYPE.STRUCTURE.name(), operation.name(), "SIZE");
             appStructureSizeGauges.get(CustomMetrics.StructureCustomMetric.valueOf(metricKey)).set(-1);
         });
+    }
+
+    public void setUploadSizeMetricsAfterDeserializing(Map<String, Professionnel> psMap, Map<String, Structure> structureMap) {
+        appPsSizeGauges.get(PsCustomMetric.PS_ADELI_UPLOAD_SIZE).set(
+                Math.toIntExact(psMap.values().stream().filter(professionnel ->
+                        ID_TYPE.ADELI.value.equals(professionnel.getIdType())).count()));
+
+        appPsSizeGauges.get(PsCustomMetric.PS_FINESS_UPLOAD_SIZE).set(
+                Math.toIntExact(psMap.values().stream().filter(professionnel ->
+                        ID_TYPE.FINESS.value.equals(professionnel.getIdType())).count()));
+
+        appPsSizeGauges.get(PsCustomMetric.PS_SIRET_UPLOAD_SIZE).set(
+                Math.toIntExact(psMap.values().stream().filter(professionnel ->
+                        ID_TYPE.SIRET.value.equals(professionnel.getIdType())).count()));
+
+        appPsSizeGauges.get(PsCustomMetric.PS_RPPS_UPLOAD_SIZE).set(
+                Math.toIntExact(psMap.values().stream().filter(professionnel ->
+                        ID_TYPE.RPPS.value.equals(professionnel.getIdType())).count()));
+
+        appStructureSizeGauges.get(StructureCustomMetric.STRUCTURE_UPLOAD_SIZE).set(
+                structureMap.values().size());
     }
 
     /**
