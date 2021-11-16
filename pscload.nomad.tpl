@@ -125,7 +125,7 @@ EOF
         mode     = "delay"
       }
       meta {
-        INSTANCE = "${NOMAD_ALLOC_NAME}"
+        INSTANCE = "$\u007BNOMAD_ALLOC_NAME\u007D"
       }
       template {
         data = <<EOH
