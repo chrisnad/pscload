@@ -57,10 +57,6 @@ public class PscRestApi {
     public MapDifference<String, Professionnel> diffPsMaps(Map<String, Professionnel> original, Map<String, Professionnel> revised) {
         MapDifference<String, Professionnel> psDiff = Maps.difference(original, revised);
 
-        customMetrics.getPsSizeGauges().get(CustomMetrics.PsCustomMetric.PS_ANY_DELETE_SIZE).set(psDiff.entriesOnlyOnLeft().size());
-        customMetrics.getPsSizeGauges().get(CustomMetrics.PsCustomMetric.PS_ANY_CREATE_SIZE).set(psDiff.entriesOnlyOnRight().size());
-        customMetrics.getPsSizeGauges().get(CustomMetrics.PsCustomMetric.PS_ANY_UPDATE_SIZE).set(psDiff.entriesDiffering().size());
-
         customMetrics.getPsSizeGauges().get(CustomMetrics.PsCustomMetric.PS_ADELI_DELETE_SIZE).set(
                 Math.toIntExact(psDiff.entriesOnlyOnLeft().values().stream().filter(ps -> CustomMetrics.ID_TYPE.ADELI.value.equals(ps.getIdType())).count()));
         customMetrics.getPsSizeGauges().get(CustomMetrics.PsCustomMetric.PS_ADELI_CREATE_SIZE).set(
@@ -126,7 +122,7 @@ public class PscRestApi {
         log.info("Ps changes count : " + psChangesCount);
         log.info("Structure changes count : " + structureChangesCount);
 
-        resetSizeMetrics();
+        customMetrics.resetSizeMetrics();
         injectPsDiffTasks(psDiff);
         injectStructuresDiffTasks(structureDiff);
     }
@@ -344,21 +340,6 @@ public class PscRestApi {
         else if (!psRef.getNationalId().equals(storedPsRef.getNationalId())) {
             log.error("Ps not toggled : Adeli is {}, toggled RRPS is {}, stored PsRef is {}", psRef.getNationalIdRef(), psRef.getNationalId(), storedPsRef.getNationalId());
         }
-    }
-
-    private void resetSizeMetrics() {
-        // reset all PsSizeMetrics
-        Arrays.stream(CustomMetrics.ID_TYPE.values()).forEach(id_type -> {
-            Arrays.stream(CustomMetrics.OPERATION.values()).forEach(operation -> {
-                String metricKey = String.join("_", CustomMetrics.ENTITY_TYPE.PS.name(), id_type.name(), operation.name(), "SIZE");
-                customMetrics.getPsSizeGauges().get(CustomMetrics.PsCustomMetric.valueOf(metricKey)).set(-1);
-            });
-        });
-        // reset all StructureSizeMetrics
-        Arrays.stream(CustomMetrics.OPERATION.values()).forEach(operation -> {
-            String metricKey = String.join("_", CustomMetrics.ENTITY_TYPE.STRUCTURE.name(), operation.name(), "SIZE");
-            customMetrics.getAppStructureSizeGauges().get(CustomMetrics.StructureCustomMetric.valueOf(metricKey)).set(-1);
-        });
     }
 
     /**

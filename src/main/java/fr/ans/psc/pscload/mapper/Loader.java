@@ -89,8 +89,6 @@ public class Loader {
 
         log.info("loading complete!");
 
-        customMetrics.getPsSizeGauges().get(CustomMetrics.PsCustomMetric.PS_ANY_UPLOAD_SIZE).set(psMap.size());
-        customMetrics.getAppStructureSizeGauges().get(CustomMetrics.StructureCustomMetric.STRUCTURE_UPLOAD_SIZE).set(structureMap.size());
         customMetrics.getAppMiscGauges().get(CustomMetrics.MiscCustomMetric.STAGE).set(1);  // stage 1: loaded file into map
     }
 
