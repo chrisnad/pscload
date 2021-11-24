@@ -11,6 +11,7 @@ import fr.ans.psc.pscload.model.Professionnel;
 import fr.ans.psc.pscload.model.Structure;
 import fr.ans.psc.pscload.service.EmailService;
 import fr.ans.psc.pscload.service.PscRestApi;
+import fr.ans.psc.pscload.service.emailing.EmailNature;
 import io.micrometer.core.instrument.Metrics;
 import okhttp3.*;
 import org.slf4j.Logger;
@@ -190,7 +191,7 @@ public class Process {
      *
      */
     public ProcessStepStatus uploadChanges() throws ConcurrentProcessCallException {
-        if (customMetrics.getAppMiscGauges().get(CustomMetrics.MiscCustomMetric.STAGE).get() == ProcessStep.UPLOAD_CHANGES_STARTED.value) {
+        if (customMetrics.getAppMiscGauges().get(CustomMetrics.MiscCustomMetric.STAGE).get() != ProcessStep.UPLOAD_CHANGES_STARTED.value) {
             throw new ConcurrentProcessCallException("Cancel new upload changes : previous upload changes process still running...");
         }
         if (psDiff == null || structureDiff == null) {
@@ -314,7 +315,7 @@ public class Process {
                 currentStepStatus = serializeMapsToFile();
 
                 if (currentStepStatus == ProcessStepStatus.CONTINUE) {
-                    emailService.sendProcessEndingConfirmationMail("PSCLOAD - Fin de process", FilesUtils.getLatestExtAndSer(filesDirectory));
+                    emailService.sendMail(EmailNature.PROCESS_FINISHED, FilesUtils.getLatestExtAndSer(filesDirectory));
                     currentStepStatus = triggerExtract();
                 }
                 if (currentStepStatus == ProcessStepStatus.CONTINUE) {
