@@ -9,6 +9,7 @@ import fr.ans.psc.pscload.mapper.Serializer;
 import fr.ans.psc.pscload.metrics.CustomMetrics;
 import fr.ans.psc.pscload.model.Professionnel;
 import fr.ans.psc.pscload.model.Structure;
+import fr.ans.psc.pscload.service.EmailService;
 import fr.ans.psc.pscload.service.PscRestApi;
 import io.micrometer.core.instrument.Metrics;
 import okhttp3.*;
@@ -43,6 +44,9 @@ public class Process {
 
     @Autowired
     private Loader loader;
+
+    @Autowired
+    private EmailService emailService;
 
     @Autowired
     private CustomMetrics customMetrics;
@@ -309,8 +313,10 @@ public class Process {
             if (currentStepStatus == ProcessStepStatus.CONTINUE) {
                 currentStepStatus = serializeMapsToFile();
 
-                currentStepStatus = triggerExtract();
-
+                if (currentStepStatus == ProcessStepStatus.CONTINUE) {
+                    emailService.sendProcessEndingConfirmationMail("subject", FilesUtils.getLatestExtAndSer(filesDirectory));
+                    currentStepStatus = triggerExtract();
+                }
                 if (currentStepStatus == ProcessStepStatus.CONTINUE) {
                     FilesUtils.cleanup(filesDirectory);
                     log.info("full upload finished");

@@ -165,10 +165,10 @@ public class SSLUtils {
                 fileName = fileURL.substring(fileURL.lastIndexOf("/") + 1);
             }
 
-            log.info("Content-Type = {}", contentType);
-            log.info("Content-Disposition = {}", disposition);
-            log.info("Content-Length = {}", contentLength);
-            log.info("fileName = {}", fileName);
+            log.trace("Content-Type = {}", contentType);
+            log.trace("Content-Disposition = {}", disposition);
+            log.trace("Content-Length = {}", contentLength);
+            log.trace("fileName = {}", fileName);
             String zipFile = saveDirectory + File.separator + fileName;
 
             // Check if zip already exists before download
