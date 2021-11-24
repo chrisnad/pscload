@@ -24,7 +24,8 @@ public class EmailService {
     public void sendProcessEndingConfirmationMail(String subject, Map<String, File> latestTxtAndSer) {
         SimpleMailMessage message = new SimpleMailMessage();
         message.setFrom(sender);
-        message.setTo(receiver);
+        String[] allReceivers = receiver.split(",");
+        message.setTo(allReceivers);
         message.setSubject(subject);
         message.setText(getEmailMessage(latestTxtAndSer));
 

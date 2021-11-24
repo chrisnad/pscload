@@ -4,6 +4,7 @@ import fr.ans.psc.pscload.component.Process;
 import fr.ans.psc.pscload.component.ProcessStepStatus;
 import fr.ans.psc.pscload.component.utils.FilesUtils;
 import fr.ans.psc.pscload.exceptions.ConcurrentProcessCallException;
+import fr.ans.psc.pscload.service.EmailService;
 import org.apache.tomcat.util.http.fileupload.FileUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -38,6 +39,9 @@ class ProcessController {
 
     @Autowired
     private final Process process;
+
+    @Autowired
+    private EmailService emailService;
 
     @Value("${files.directory}")
     private String filesDirectory;
@@ -341,6 +345,11 @@ class ProcessController {
         }
         process.uploadPsRefsAfterToggle();
         return ProcessStepStatus.CONTINUE.message;
+    }
+
+    @PostMapping(value="/process/email")
+    public void testMail() {
+        emailService.sendProcessEndingConfirmationMail("subject", FilesUtils.getLatestExtAndSer(filesDirectory));
     }
 
 }
