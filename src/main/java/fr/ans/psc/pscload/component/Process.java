@@ -314,7 +314,7 @@ public class Process {
                 currentStepStatus = serializeMapsToFile();
 
                 if (currentStepStatus == ProcessStepStatus.CONTINUE) {
-                    emailService.sendProcessEndingConfirmationMail("subject", FilesUtils.getLatestExtAndSer(filesDirectory));
+                    emailService.sendProcessEndingConfirmationMail("PSCLOAD - Fin de process", FilesUtils.getLatestExtAndSer(filesDirectory));
                     currentStepStatus = triggerExtract();
                 }
                 if (currentStepStatus == ProcessStepStatus.CONTINUE) {

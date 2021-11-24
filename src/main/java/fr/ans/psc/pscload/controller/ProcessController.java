@@ -347,9 +347,4 @@ class ProcessController {
         return ProcessStepStatus.CONTINUE.message;
     }
 
-    @PostMapping(value="/process/email")
-    public void testMail() {
-        emailService.sendProcessEndingConfirmationMail("subject", FilesUtils.getLatestExtAndSer(filesDirectory));
-    }
-
 }
