@@ -99,7 +99,7 @@ public class Process {
         // unzipping only if txt file is newer than what we already have
         if (zipFile != null && FilesUtils.unzip(zipFile, true)) {
             // stage 1: download and unzip successful
-            customMetrics.getAppMiscGauges().get(CustomMetrics.MiscCustomMetric.STAGE).set(ProcessStep.DOWNLOADED.value);
+            setCurrentStage(ProcessStep.DOWNLOADED);
             currentStepStatus = ProcessStepStatus.CONTINUE;
         } else {
             currentStepStatus = zipFile == null ? ProcessStepStatus.ZIP_FILE_ABSENT : ProcessStepStatus.TXT_FILE_ALREADY_EXISTING;
@@ -113,7 +113,7 @@ public class Process {
      */
     public ProcessStepStatus loadLatestFile() throws ConcurrentProcessCallException {
         ProcessStepStatus status;
-        if (customMetrics.getAppMiscGauges().get(CustomMetrics.MiscCustomMetric.STAGE).get() == ProcessStep.UPLOAD_CHANGES_STARTED.value) {
+        if (isAtStage(ProcessStep.UPLOAD_CHANGES_STARTED)) {
             throw new ConcurrentProcessCallException("Cancel loading latest file : upload changes process still running...");
         }
         Map<String, File> latestFiles = FilesUtils.getLatestExtAndSer(filesDirectory);
@@ -124,7 +124,7 @@ public class Process {
 
             try {
                 loader.loadMapsFromFile(latestExtract);
-                customMetrics.getAppMiscGauges().get(CustomMetrics.MiscCustomMetric.STAGE).set(ProcessStep.CURRENT_MAP_LOADED.value);
+                setCurrentStage(ProcessStep.CURRENT_MAP_LOADED);
                 status = ProcessStepStatus.CONTINUE;
 
             } catch (IOException e) {
@@ -143,7 +143,7 @@ public class Process {
      */
     public ProcessStepStatus deserializeFileToMaps() throws ConcurrentProcessCallException {
         ProcessStepStatus status;
-        if (customMetrics.getAppMiscGauges().get(CustomMetrics.MiscCustomMetric.STAGE).get() == ProcessStep.UPLOAD_CHANGES_STARTED.value) {
+        if (isAtStage(ProcessStep.UPLOAD_CHANGES_STARTED)) {
             throw new ConcurrentProcessCallException("Cancel deserializing file : upload changes process still running...");
         }
         Map<String, File> latestFiles = FilesUtils.getLatestExtAndSer(filesDirectory);
@@ -153,14 +153,15 @@ public class Process {
         if(ogFile == null) {
             log.info("no ser file has been found");
             // if no ser file is present we should not try to desrialize it but continue with an empty map (map is already initialized)
-            customMetrics.getAppMiscGauges().get(CustomMetrics.MiscCustomMetric.STAGE).set(ProcessStep.PREVIOUS_MAP_LOADED.value);
+            setCurrentStage(ProcessStep.PREVIOUS_MAP_LOADED);
             status = ProcessStepStatus.CONTINUE;
         }
         else {
             try {
                 serializer.deserialiseFileToMaps(ogFile);
-                customMetrics.getAppMiscGauges().get(CustomMetrics.MiscCustomMetric.STAGE).set(ProcessStep.PREVIOUS_MAP_LOADED.value);
+                setCurrentStage(ProcessStep.PREVIOUS_MAP_LOADED);
                 status = ProcessStepStatus.CONTINUE;
+
             } catch (FileNotFoundException e) {
                 log.error("Error during deserialization", e);
                 status = ProcessStepStatus.INVALID_SER_FILE_PATH;
@@ -174,16 +175,15 @@ public class Process {
      */
     public void computeDiff() throws ConcurrentProcessCallException {
 
-        if (customMetrics.getAppMiscGauges().get(CustomMetrics.MiscCustomMetric.STAGE).get() == ProcessStep.UPLOAD_CHANGES_STARTED.value
-        || customMetrics.getAppMiscGauges().get(CustomMetrics.MiscCustomMetric.STAGE).get() == ProcessStep.COMPUTE_DIFF_STARTED.value) {
+        if (isAtStage(ProcessStep.UPLOAD_CHANGES_STARTED) || isAtStage(ProcessStep.COMPUTE_DIFF_STARTED)) {
             throw new ConcurrentProcessCallException("Cancel computing diff : upload changes process still running...");
         }
         log.info("starting diff");
-        customMetrics.getAppMiscGauges().get(CustomMetrics.MiscCustomMetric.STAGE).set(ProcessStep.COMPUTE_DIFF_STARTED.value);
+
+        setCurrentStage(ProcessStep.COMPUTE_DIFF_STARTED);
         psDiff = pscRestApi.diffPsMaps(serializer.getPsMap(), loader.getPsMap());
         structureDiff = pscRestApi.diffStructureMaps(serializer.getStructureMap(), loader.getStructureMap());
-
-        customMetrics.getAppMiscGauges().get(CustomMetrics.MiscCustomMetric.STAGE).set(ProcessStep.COMPUTE_DIFF_FINISHED.value);
+        setCurrentStage(ProcessStep.COMPUTE_DIFF_FINISHED);
     }
 
     /**
@@ -191,16 +191,19 @@ public class Process {
      *
      */
     public ProcessStepStatus uploadChanges() throws ConcurrentProcessCallException {
-        if (customMetrics.getAppMiscGauges().get(CustomMetrics.MiscCustomMetric.STAGE).get() != ProcessStep.UPLOAD_CHANGES_STARTED.value) {
+        if (isAtStage(ProcessStep.UPLOAD_CHANGES_STARTED)) {
             throw new ConcurrentProcessCallException("Cancel new upload changes : previous upload changes process still running...");
         }
-        if (psDiff == null || structureDiff == null) {
+
+        if (psDiff == null || structureDiff == null || !isAtStage(ProcessStep.COMPUTE_DIFF_FINISHED)) {
            return ProcessStepStatus.DIFF_NOT_COMPUTED;
         }
-        customMetrics.getAppMiscGauges().get(CustomMetrics.MiscCustomMetric.STAGE).set(ProcessStep.UPLOAD_CHANGES_STARTED.value);
-        pscRestApi.uploadChanges(psDiff, structureDiff);
 
-        customMetrics.getAppMiscGauges().get(CustomMetrics.MiscCustomMetric.STAGE).set(ProcessStep.UPLOAD_CHANGES_FINISHED.value);
+
+        setCurrentStage(ProcessStep.UPLOAD_CHANGES_STARTED);
+        pscRestApi.uploadChanges(psDiff, structureDiff);
+        setCurrentStage(ProcessStep.UPLOAD_CHANGES_FINISHED);
+
         return ProcessStepStatus.CONTINUE;
     }
 
@@ -221,7 +224,8 @@ public class Process {
                         filesDirectory + "/" + latestExtractDate.concat(".ser"));
 
                 Metrics.counter(CustomMetrics.SER_FILE_TAG, CustomMetrics.TIMESTAMP_TAG, latestExtractDate).increment();
-                customMetrics.getAppMiscGauges().get(CustomMetrics.MiscCustomMetric.STAGE).set(ProcessStep.IDLE.value);
+                setCurrentStage(ProcessStep.IDLE);
+
             } catch (FileNotFoundException e) {
                 log.error("Invalid path", e);
                 return ProcessStepStatus.INVALID_SER_FILE_PATH;
@@ -328,6 +332,14 @@ public class Process {
             currentStepStatus = ProcessStepStatus.ABORT;
         }
         return currentStepStatus;
+    }
+
+    private boolean isAtStage(ProcessStep stage) {
+        return customMetrics.getAppMiscGauges().get(CustomMetrics.MiscCustomMetric.STAGE).get() == stage.value;
+    }
+
+    private void setCurrentStage(ProcessStep stage) {
+        customMetrics.getAppMiscGauges().get(CustomMetrics.MiscCustomMetric.STAGE).set(stage.value);
     }
 
 }
