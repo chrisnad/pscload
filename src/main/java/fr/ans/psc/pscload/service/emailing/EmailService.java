@@ -1,4 +1,4 @@
-package fr.ans.psc.pscload.service;
+package fr.ans.psc.pscload.service.emailing;
 
 import fr.ans.psc.pscload.service.emailing.EmailNature;
 import org.springframework.beans.factory.annotation.Autowired;

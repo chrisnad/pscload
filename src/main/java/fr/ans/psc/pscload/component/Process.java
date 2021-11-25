@@ -9,7 +9,7 @@ import fr.ans.psc.pscload.mapper.Serializer;
 import fr.ans.psc.pscload.metrics.CustomMetrics;
 import fr.ans.psc.pscload.model.Professionnel;
 import fr.ans.psc.pscload.model.Structure;
-import fr.ans.psc.pscload.service.EmailService;
+import fr.ans.psc.pscload.service.emailing.EmailService;
 import fr.ans.psc.pscload.service.PscRestApi;
 import fr.ans.psc.pscload.service.emailing.EmailNature;
 import io.micrometer.core.instrument.Metrics;

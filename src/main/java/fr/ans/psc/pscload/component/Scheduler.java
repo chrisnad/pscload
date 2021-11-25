@@ -1,7 +1,7 @@
 package fr.ans.psc.pscload.component;
 
 import fr.ans.psc.pscload.component.utils.FilesUtils;
-import fr.ans.psc.pscload.service.EmailService;
+import fr.ans.psc.pscload.service.emailing.EmailService;
 import fr.ans.psc.pscload.service.emailing.EmailNature;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
