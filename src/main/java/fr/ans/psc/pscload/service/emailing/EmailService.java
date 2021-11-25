@@ -1,5 +1,6 @@
-package fr.ans.psc.pscload.service;
+package fr.ans.psc.pscload.service.emailing;
 
+import fr.ans.psc.pscload.service.emailing.EmailNature;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.SimpleMailMessage;
@@ -21,21 +22,21 @@ public class EmailService {
     @Value("${pscload.mail.receiver}")
     private String receiver;
 
-    public void sendProcessEndingConfirmationMail(String subject, Map<String, File> latestTxtAndSer) {
+    public void sendMail(EmailNature emailNature, Map<String, File> latestTxtAndSer) {
         SimpleMailMessage message = new SimpleMailMessage();
         message.setFrom(sender);
         String[] allReceivers = receiver.split(",");
         message.setTo(allReceivers);
-        message.setSubject(subject);
-        message.setText(getEmailMessage(latestTxtAndSer));
+        message.setSubject(emailNature.subject);
+        message.setText(getEmailMessage(emailNature, latestTxtAndSer));
 
         emailSender.send(message);
     }
 
-    private String getEmailMessage(Map<String, File> latestTxtAndSer) {
+    private String getEmailMessage(EmailNature emailNature, Map<String, File> latestTxtAndSer) {
         String latestTxt = latestTxtAndSer.get("txt").getName();
         String latestSer = latestTxtAndSer.get("ser").getName();
 
-        return "Le process pscload s'est terminé, le fichier " + latestSer + " a été généré à partir du fichier " + latestTxt + ".";
+        return String.format(emailNature.message, latestSer, latestTxt);
     }
 }
