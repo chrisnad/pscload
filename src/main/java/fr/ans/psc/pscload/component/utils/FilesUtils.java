@@ -254,4 +254,12 @@ public class FilesUtils {
         return new Date(0);
     }
 
+    public static boolean isSerFileConsistentWithTxtFile(String filesDirectory) {
+        Map<String,File> latestTxtAndSer = getLatestExtAndSer(filesDirectory);
+        File latestTxt = latestTxtAndSer.get("txt");
+        File latestSer = latestTxtAndSer.get("ser");
+
+        return compare(latestTxt, latestSer) == 0;
+    }
+
 }

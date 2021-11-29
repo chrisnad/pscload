@@ -10,7 +10,9 @@ import fr.ans.psc.pscload.metrics.CustomMetrics;
 import fr.ans.psc.pscload.model.Professionnel;
 import fr.ans.psc.pscload.model.PsRef;
 import fr.ans.psc.pscload.model.Structure;
+import fr.ans.psc.pscload.service.emailing.EmailService;
 import fr.ans.psc.pscload.service.PscRestApi;
+import fr.ans.psc.pscload.service.emailing.EmailNature;
 import io.micrometer.core.instrument.Metrics;
 import okhttp3.*;
 import org.slf4j.Logger;
@@ -45,6 +47,9 @@ public class Process {
 
     @Autowired
     private Loader loader;
+
+    @Autowired
+    private EmailService emailService;
 
     @Autowired
     private CustomMetrics customMetrics;
@@ -92,6 +97,7 @@ public class Process {
             if (useCustomSSLContext) {
                 SSLUtils.initSSLContext(cert, key, ca);
             }
+          
             // downloads only if zip doesnt exist in our files directory
             String zipFile = SSLUtils.downloadFile(downloadUrl, filesDirectory);
 
@@ -112,7 +118,7 @@ public class Process {
      */
     public ProcessStepStatus loadLatestFile() throws ConcurrentProcessCallException {
         ProcessStepStatus status;
-        if (customMetrics.getAppMiscGauges().get(CustomMetrics.MiscCustomMetric.STAGE).get() == ProcessStep.UPLOAD_CHANGES_STARTED.value) {
+        if (isAtStage(ProcessStep.UPLOAD_CHANGES_STARTED)) {
             throw new ConcurrentProcessCallException("Cancel loading latest file : upload changes process still running...");
         }
         Map<String, File> latestFiles = FilesUtils.getLatestExtAndSer(filesDirectory);
@@ -141,7 +147,7 @@ public class Process {
      */
     public ProcessStepStatus deserializeFileToMaps() throws ConcurrentProcessCallException {
         ProcessStepStatus status;
-        if (customMetrics.getAppMiscGauges().get(CustomMetrics.MiscCustomMetric.STAGE).get() == ProcessStep.UPLOAD_CHANGES_STARTED.value) {
+        if (isAtStage(ProcessStep.UPLOAD_CHANGES_STARTED)) {
             throw new ConcurrentProcessCallException("Cancel deserializing file : upload changes process still running...");
         }
         Map<String, File> latestFiles = FilesUtils.getLatestExtAndSer(filesDirectory);
@@ -156,7 +162,6 @@ public class Process {
             log.error("Error during deserialization", e);
             status = ProcessStepStatus.INVALID_SER_FILE_PATH;
         }
-
         return status;
     }
 
@@ -165,11 +170,11 @@ public class Process {
      */
     public void computeDiff() throws ConcurrentProcessCallException {
 
-        if (customMetrics.getAppMiscGauges().get(CustomMetrics.MiscCustomMetric.STAGE).get() == ProcessStep.UPLOAD_CHANGES_STARTED.value
-                || customMetrics.getAppMiscGauges().get(CustomMetrics.MiscCustomMetric.STAGE).get() == ProcessStep.COMPUTE_DIFF_STARTED.value) {
+        if (isAtStage(ProcessStep.UPLOAD_CHANGES_STARTED) || isAtStage(ProcessStep.COMPUTE_DIFF_STARTED)) {
             throw new ConcurrentProcessCallException("Cancel computing diff : upload changes process still running...");
         }
         log.info("starting diff");
+
         setCurrentStage(ProcessStep.COMPUTE_DIFF_STARTED);
         psDiff = pscRestApi.diffPsMaps(serializer.getPsMap(), loader.getPsMap());
         structureDiff = pscRestApi.diffStructureMaps(serializer.getStructureMap(), loader.getStructureMap());
@@ -181,16 +186,18 @@ public class Process {
      * Load changes.
      */
     public ProcessStepStatus uploadChanges() throws ConcurrentProcessCallException {
-        if (customMetrics.getAppMiscGauges().get(CustomMetrics.MiscCustomMetric.STAGE).get() == ProcessStep.UPLOAD_CHANGES_STARTED.value) {
+        if (isAtStage(ProcessStep.UPLOAD_CHANGES_STARTED)) {
             throw new ConcurrentProcessCallException("Cancel new upload changes : previous upload changes process still running...");
         }
-        if (psDiff == null || structureDiff == null) {
-            return ProcessStepStatus.DIFF_NOT_COMPUTED;
+
+        if (psDiff == null || structureDiff == null || !isAtStage(ProcessStep.COMPUTE_DIFF_FINISHED)) {
+           return ProcessStepStatus.DIFF_NOT_COMPUTED;
         }
+
         setCurrentStage(ProcessStep.UPLOAD_CHANGES_STARTED);
         pscRestApi.uploadChanges(psDiff, structureDiff);
-
         setCurrentStage(ProcessStep.UPLOAD_CHANGES_FINISHED);
+
         return ProcessStepStatus.CONTINUE;
     }
 
@@ -210,6 +217,7 @@ public class Process {
 
                 Metrics.counter(CustomMetrics.SER_FILE_TAG, CustomMetrics.TIMESTAMP_TAG, latestExtractDate).increment();
                 setCurrentStage(ProcessStep.IDLE);
+
             } catch (FileNotFoundException e) {
                 log.error("Invalid path", e);
                 return ProcessStepStatus.INVALID_SER_FILE_PATH;
@@ -311,8 +319,10 @@ public class Process {
             if (currentStepStatus == ProcessStepStatus.CONTINUE) {
                 currentStepStatus = serializeMapsToFile();
 
-                currentStepStatus = triggerExtract();
-
+                if (currentStepStatus == ProcessStepStatus.CONTINUE) {
+                    emailService.sendMail(EmailNature.PROCESS_FINISHED, FilesUtils.getLatestExtAndSer(filesDirectory));
+                    currentStepStatus = triggerExtract();
+                }
                 if (currentStepStatus == ProcessStepStatus.CONTINUE) {
                     FilesUtils.cleanup(filesDirectory);
                     log.info("full upload finished");
@@ -325,8 +335,12 @@ public class Process {
         return currentStepStatus;
     }
 
-    private void setCurrentStage(ProcessStep step) {
-        customMetrics.getAppMiscGauges().get(CustomMetrics.MiscCustomMetric.STAGE).set(step.value);
+    private boolean isAtStage(ProcessStep stage) {
+        return customMetrics.getAppMiscGauges().get(CustomMetrics.MiscCustomMetric.STAGE).get() == stage.value;
     }
 
+    private void setCurrentStage(ProcessStep stage) {
+        customMetrics.getAppMiscGauges().get(CustomMetrics.MiscCustomMetric.STAGE).set(stage.value);
+
+    }
 }
