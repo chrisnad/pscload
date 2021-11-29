@@ -1,7 +1,8 @@
 package fr.ans.psc.pscload.component;
 
 import fr.ans.psc.pscload.component.utils.FilesUtils;
-import fr.ans.psc.pscload.exceptions.ConcurrentProcessCallException;
+import fr.ans.psc.pscload.service.emailing.EmailService;
+import fr.ans.psc.pscload.service.emailing.EmailNature;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,6 +27,9 @@ public class Scheduler {
     @Autowired
     private Process process;
 
+    @Autowired
+    private EmailService emailService;
+
     @Value("${enable.scheduler:true}")
     private boolean enabled;
 
@@ -48,7 +52,11 @@ public class Scheduler {
             log.info("start batch");
 
             currentStep = process.downloadAndUnzip(extractDownloadUrl);
-            if (currentStep == ProcessStepStatus.CONTINUE) {
+            if (!FilesUtils.isSerFileConsistentWithTxtFile(filesDirectory)) {
+                if (currentStep == ProcessStepStatus.TXT_FILE_ALREADY_EXISTING) {
+                    log.info("Relaunching process after previous unexpected interruption");
+                    emailService.sendMail(EmailNature.PROCESS_RELAUNCHED, FilesUtils.getLatestExtAndSer(filesDirectory));
+                }
                 currentStep = process.runFirst();
 
                 if (autoContinue && currentStep == ProcessStepStatus.CONTINUE) {
