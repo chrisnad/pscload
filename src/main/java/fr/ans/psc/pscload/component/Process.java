@@ -90,7 +90,7 @@ public class Process {
     public ProcessStepStatus downloadAndUnzip(String downloadUrl) throws GeneralSecurityException, IOException {
         ProcessStepStatus currentStepStatus = ProcessStepStatus.DELAYED;
 
-        if (customMetrics.getAppMiscGauges().get(CustomMetrics.MiscCustomMetric.STAGE).get() != ProcessStep.TOGGLE_RUNNING.value) {
+        if (!isAtStage(ProcessStep.TOGGLE_RUNNING)) {
             log.info("cleaning files repository before download");
             FilesUtils.cleanup(filesDirectory);
 
