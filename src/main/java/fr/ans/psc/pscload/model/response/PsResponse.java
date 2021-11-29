@@ -17,4 +17,7 @@ public class PsResponse implements Serializable {
     @JsonProperty("data")
     private Professionnel data;
 
+    public Professionnel getData() {
+        return data;
+    }
 }

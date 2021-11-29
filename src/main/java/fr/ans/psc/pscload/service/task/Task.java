@@ -1,10 +1,7 @@
 package fr.ans.psc.pscload.service.task;
 
 import fr.ans.psc.pscload.component.JsonFormatter;
-import okhttp3.Call;
-import okhttp3.OkHttpClient;
-import okhttp3.Request;
-import okhttp3.Response;
+import okhttp3.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -33,10 +30,8 @@ public abstract class Task {
             Response response = call.execute();
             String responseBody = Objects.requireNonNull(response.body()).string();
             ApiResponse apiResponse = JsonFormatter.apiResponseFromJson(responseBody);
-            if (apiResponse.getCode() == 500) {
-                log.info("mongodb internal server error");
-            }
-            log.info("response body: {}", responseBody);
+
+            handleApiResponseLogging(apiResponse, responseBody);
             response.close();
         } catch (IOException e) {
             log.error("error: {}", e.getMessage());
@@ -44,12 +39,35 @@ public abstract class Task {
         }
     }
 
+    private void handleApiResponseLogging(ApiResponse apiResponse, String stringifiedBody) {
+        if (apiResponse != null && apiResponse.getCode() != null) {
+            switch (apiResponse.getCode()) {
+                case 200:
+                    log.debug("mongodb operation OK : " + stringifiedBody);
+                    break;
+                case 500:
+                    log.error("mongodb internal server error : " + stringifiedBody);
+                    break;
+                case 404:
+                    log.debug("entity not found" + stringifiedBody);
+                    break;
+                case 409:
+                    log.debug("entity already exist : " + stringifiedBody);
+                    break;
+                default:
+                    log.error("unknown api response type" + stringifiedBody);
+                    break;
+            }
+        }
+
+    }
+
     public static class ApiResponse {
         private String status;
         private String method;
         private String uri;
         private String message;
-        private int code;
+        private Integer code;
 
         public String getStatus() {
             return status;
@@ -83,11 +101,11 @@ public abstract class Task {
             this.message = message;
         }
 
-        public int getCode() {
+        public Integer getCode() {
             return code;
         }
 
-        public void setCode(int code) {
+        public void setCode(Integer code) {
             this.code = code;
         }
     }

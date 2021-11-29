@@ -91,8 +91,8 @@ auto.continue.scheduler=false
 schedule.cron.expression = 0 0 4/6 * * ?
 schedule.cron.timeZone = Europe/Paris
 management.endpoints.web.exposure.include=health,info,prometheus,metric
-spring.servlet.multipart.max-file-size=10MB
-spring.servlet.multipart.max-request-size=10MB
+spring.servlet.multipart.max-file-size=20MB
+spring.servlet.multipart.max-request-size=20MB
 deactivation.excluded.profession.codes={{ with secret "psc-ecosystem/pscload" }}{{ .Data.data.deactivation_codes_exclusion_list }}{{ end }}
 spring.mail.host={{ with secret "psc-ecosystem/emailing" }}{{ .Data.data.spring_mail_host }}{{ end }}
 spring.mail.port={{ with secret "psc-ecosystem/emailing" }}{{ .Data.data.spring_mail_port }}{{ end }}
@@ -117,8 +117,9 @@ EOF
           type = "http"
           path = "/pscload/v1/check"
           port = "http"
-          interval = "10s"
+          interval = "30s"
           timeout = "2s"
+          failures_before_critical = 5
         }
       }
     }

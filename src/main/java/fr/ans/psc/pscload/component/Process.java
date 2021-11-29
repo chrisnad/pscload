@@ -8,6 +8,7 @@ import fr.ans.psc.pscload.mapper.Loader;
 import fr.ans.psc.pscload.mapper.Serializer;
 import fr.ans.psc.pscload.metrics.CustomMetrics;
 import fr.ans.psc.pscload.model.Professionnel;
+import fr.ans.psc.pscload.model.PsRef;
 import fr.ans.psc.pscload.model.Structure;
 import fr.ans.psc.pscload.service.emailing.EmailService;
 import fr.ans.psc.pscload.service.PscRestApi;
@@ -23,6 +24,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.*;
 import java.security.GeneralSecurityException;
+import java.util.Arrays;
 import java.util.Map;
 import java.util.Objects;
 
@@ -86,30 +88,33 @@ public class Process {
      * @throws IOException              the io exception
      */
     public ProcessStepStatus downloadAndUnzip(String downloadUrl) throws GeneralSecurityException, IOException {
-        log.info("cleaning files repository before download");
-        FilesUtils.cleanup(filesDirectory);
-        ProcessStepStatus currentStepStatus;
+        ProcessStepStatus currentStepStatus = ProcessStepStatus.DELAYED;
 
-        if (useCustomSSLContext) {
-            SSLUtils.initSSLContext(cert, key, ca);
-        }
-        // downloads only if zip doesnt exist in our files directory
-        String zipFile = SSLUtils.downloadFile(downloadUrl, filesDirectory);
+        if (customMetrics.getAppMiscGauges().get(CustomMetrics.MiscCustomMetric.STAGE).get() != ProcessStep.TOGGLE_RUNNING.value) {
+            log.info("cleaning files repository before download");
+            FilesUtils.cleanup(filesDirectory);
 
-        // unzipping only if txt file is newer than what we already have
-        if (zipFile != null && FilesUtils.unzip(zipFile, true)) {
-            // stage 1: download and unzip successful
-            setCurrentStage(ProcessStep.DOWNLOADED);
-            currentStepStatus = ProcessStepStatus.CONTINUE;
-        } else {
-            currentStepStatus = zipFile == null ? ProcessStepStatus.ZIP_FILE_ABSENT : ProcessStepStatus.TXT_FILE_ALREADY_EXISTING;
+            if (useCustomSSLContext) {
+                SSLUtils.initSSLContext(cert, key, ca);
+            }
+          
+            // downloads only if zip doesnt exist in our files directory
+            String zipFile = SSLUtils.downloadFile(downloadUrl, filesDirectory);
+
+            // unzipping only if txt file is newer than what we already have
+            if (zipFile != null && FilesUtils.unzip(zipFile, true)) {
+                // stage 1: download and unzip successful
+                setCurrentStage(ProcessStep.DOWNLOADED);
+                currentStepStatus = ProcessStepStatus.CONTINUE;
+            } else {
+                currentStepStatus = zipFile == null ? ProcessStepStatus.ZIP_FILE_ABSENT : ProcessStepStatus.TXT_FILE_ALREADY_EXISTING;
+            }
         }
         return currentStepStatus;
     }
 
     /**
      * Load latest file.
-     *
      */
     public ProcessStepStatus loadLatestFile() throws ConcurrentProcessCallException {
         ProcessStepStatus status;
@@ -139,7 +144,6 @@ public class Process {
 
     /**
      * Deserialize file to maps.
-     *
      */
     public ProcessStepStatus deserializeFileToMaps() throws ConcurrentProcessCallException {
         ProcessStepStatus status;
@@ -150,22 +154,13 @@ public class Process {
 
         File ogFile = latestFiles.get("ser");
 
-        if(ogFile == null) {
-            log.info("no ser file has been found");
-            // if no ser file is present we should not try to desrialize it but continue with an empty map (map is already initialized)
+        try {
+            serializer.deserialiseFileToMaps(ogFile);
             setCurrentStage(ProcessStep.PREVIOUS_MAP_LOADED);
             status = ProcessStepStatus.CONTINUE;
-        }
-        else {
-            try {
-                serializer.deserialiseFileToMaps(ogFile);
-                setCurrentStage(ProcessStep.PREVIOUS_MAP_LOADED);
-                status = ProcessStepStatus.CONTINUE;
-
-            } catch (FileNotFoundException e) {
-                log.error("Error during deserialization", e);
-                status = ProcessStepStatus.INVALID_SER_FILE_PATH;
-            }
+        } catch (FileNotFoundException e) {
+            log.error("Error during deserialization", e);
+            status = ProcessStepStatus.INVALID_SER_FILE_PATH;
         }
         return status;
     }
@@ -183,12 +178,12 @@ public class Process {
         setCurrentStage(ProcessStep.COMPUTE_DIFF_STARTED);
         psDiff = pscRestApi.diffPsMaps(serializer.getPsMap(), loader.getPsMap());
         structureDiff = pscRestApi.diffStructureMaps(serializer.getStructureMap(), loader.getStructureMap());
+
         setCurrentStage(ProcessStep.COMPUTE_DIFF_FINISHED);
     }
 
     /**
      * Load changes.
-     *
      */
     public ProcessStepStatus uploadChanges() throws ConcurrentProcessCallException {
         if (isAtStage(ProcessStep.UPLOAD_CHANGES_STARTED)) {
@@ -199,7 +194,6 @@ public class Process {
            return ProcessStepStatus.DIFF_NOT_COMPUTED;
         }
 
-
         setCurrentStage(ProcessStep.UPLOAD_CHANGES_STARTED);
         pscRestApi.uploadChanges(psDiff, structureDiff);
         setCurrentStage(ProcessStep.UPLOAD_CHANGES_FINISHED);
@@ -209,15 +203,13 @@ public class Process {
 
     /**
      * Serialize maps to file.
-     *
      */
     public ProcessStepStatus serializeMapsToFile() {
         ProcessStepStatus status;
         // serialise latest extract
         if (latestExtract == null) {
             status = ProcessStepStatus.TXT_FILE_ABSENT;
-        }
-        else {
+        } else {
             String latestExtractDate = FilesUtils.getDateStringFromFileName(latestExtract);
             try {
                 serializer.serialiseMapsToFile(loader.getPsMap(), loader.getStructureMap(),
@@ -236,7 +228,7 @@ public class Process {
         return status;
     }
 
-    public ProcessStepStatus triggerExtract()  {
+    public ProcessStepStatus triggerExtract() {
         ProcessStepStatus processStepStatus;
         log.info("prepare trigger RASS extract");
         OkHttpClient client = new OkHttpClient();
@@ -282,12 +274,21 @@ public class Process {
      * @throws IOException the io exception
      */
     public ProcessStepStatus loadToggleMaps(File toggleFile) throws IOException {
+        setCurrentStage(ProcessStep.TOGGLE_RUNNING);
         loader.loadPSRefMapFromFile(toggleFile);
         return ProcessStepStatus.CONTINUE;
     }
 
     public void uploadPsRefsAfterToggle() {
-        pscRestApi.uploadPsRefs(loader.getPsRefCreateMap(), loader.getPsRefUpdateMap());
+        pscRestApi.uploadPsRefs(loader.getPsRefCreateMap());
+        setCurrentStage(ProcessStep.IDLE);
+    }
+
+    public void checkToggleErrors(File toggleFile) throws IOException {
+        setCurrentStage(ProcessStep.TOGGLE_RUNNING);
+        loader.loadPSRefMapFromFile(toggleFile);
+        pscRestApi.checkToggleErrors(loader.getPsRefCreateMap());
+        setCurrentStage(ProcessStep.IDLE);
     }
 
     public ProcessStepStatus runFirst() {
@@ -340,6 +341,6 @@ public class Process {
 
     private void setCurrentStage(ProcessStep stage) {
         customMetrics.getAppMiscGauges().get(CustomMetrics.MiscCustomMetric.STAGE).set(stage.value);
-    }
 
+    }
 }

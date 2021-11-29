@@ -11,7 +11,8 @@ public enum ProcessStepStatus {
     INVALID_SER_FILE_PATH("Invalid ser file path"),
     PSCEXTRACT_ENDPOINT_FAILURE("Error during pscextract endpoint call"),
     FILE_READING_ERROR("Error during file reading"),
-    ABORT("Upload changes process still running, launch aborted");
+    ABORT("Upload changes process still running, launch aborted"),
+    DELAYED("Toggle running... Operation delayed and rescheduled");
 
     public String message;
 

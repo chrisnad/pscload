@@ -3,9 +3,11 @@ package fr.ans.psc.pscload.mapper;
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
+import fr.ans.psc.pscload.metrics.CustomMetrics;
 import fr.ans.psc.pscload.model.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.io.File;
@@ -41,6 +43,9 @@ public class Serializer {
 
     private Map<String, Structure> structureMap = new HashMap<>();
 
+    @Autowired
+    private CustomMetrics customMetrics;
+
     public Map<String, Professionnel> getPsMap() {
         return psMap;
     }
@@ -61,13 +66,21 @@ public class Serializer {
     }
 
     public void deserialiseFileToMaps(File file) throws FileNotFoundException {
-        log.info("deserializing {} to Ps map", file.getName());
 
-        Input input = new Input(new FileInputStream(file));
-        psMap = (Map<String, Professionnel>) kryo.readClassAndObject(input);
-        structureMap = (Map<String, Structure>) kryo.readClassAndObject(input);
-        input.close();
+        if(file == null) {
+            log.info("no ser file has been found, maps will be empty");
+            psMap.clear();
+            structureMap.clear();
+        } else {
+            log.info("deserializing {} to Ps map", file.getName());
 
+            Input input = new Input(new FileInputStream(file));
+            psMap = (Map<String, Professionnel>) kryo.readClassAndObject(input);
+            structureMap = (Map<String, Structure>) kryo.readClassAndObject(input);
+            input.close();
+        }
+
+        customMetrics.setUploadSizeMetricsAfterDeserializing(psMap, structureMap);
         log.info("deserialization complete!");
     }
 
