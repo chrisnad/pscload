@@ -53,7 +53,7 @@ public class Scheduler {
 
             currentStep = process.downloadAndUnzip(extractDownloadUrl);
             if (!FilesUtils.isSerFileConsistentWithTxtFile(filesDirectory)) {
-                if (currentStep != ProcessStepStatus.TXT_FILE_ALREADY_EXISTING) {
+                if (currentStep == ProcessStepStatus.TXT_FILE_ALREADY_EXISTING) {
                     log.info("Relaunching process after previous unexpected interruption");
                     emailService.sendMail(EmailNature.PROCESS_RELAUNCHED, FilesUtils.getLatestExtAndSer(filesDirectory));
                 }
