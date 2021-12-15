@@ -40,6 +40,7 @@ app "prosanteconnect/pscload" {
         proxy_host = var.proxy_host
         proxy_port = var.proxy_port
         non_proxy_hosts = var.non_proxy_hosts
+        registry_path = var.registry_path
       })
     }
   }
